@@ -61,7 +61,8 @@ enum PadTheme {
     static let purpleEdge = padEdge
     static let purpleHit = padHit
 
-    static let accentRed = Color(red: 1.0, green: 59 / 255, blue: 48 / 255) // ~#FF3B30
+    /// Roll / record accent — VISUAL-P0 / mock `#EF4444` (idle glyph; active uses LED cavity).
+    static let accentRed = Color(hex: 0xEF4444)
     static let knobCap = Color(hex: 0x18181B)
     static let brand = Color.white.opacity(0.95)
 

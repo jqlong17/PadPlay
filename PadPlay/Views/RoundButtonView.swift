@@ -65,9 +65,16 @@ struct RoundButtonView: View {
 
     private var fgColor: Color {
         switch ledState {
-        case .idle: return Color.white.opacity(0.75)
-        case .activePurple: return Color(hex: 0xF3E8FF)
-        case .activeRollRed: return Color(hex: 0xFECACA)
+        case .idle:
+            // Mock baseline: 连击 label + record dot stay red in the idle deep well.
+            if let accent, accent == PadTheme.accentRed {
+                return PadTheme.accentRed
+            }
+            return Color.white.opacity(0.75)
+        case .activePurple:
+            return Color(hex: 0xF3E8FF)
+        case .activeRollRed:
+            return Color(hex: 0xFECACA)
         }
     }
 
@@ -172,13 +179,29 @@ struct LabeledRoundButton: View {
 #if DEBUG
 #Preview("RoundButton P0 LED") {
     HStack(spacing: 16) {
-        RoundButtonView(title: "静音", systemImage: nil, isActive: false, diameter: 56, action: {})
-        RoundButtonView(title: "循环", systemImage: nil, isActive: true, diameter: 56, action: {})
+        RoundButtonView(title: "鼓组", systemImage: nil, isActive: false, diameter: 56, action: {})
+        RoundButtonView(title: "节拍器", systemImage: nil, isActive: true, diameter: 56, action: {})
+        RoundButtonView(
+            title: "连击",
+            systemImage: nil,
+            accent: PadTheme.accentRed,
+            isActive: false,
+            diameter: 56,
+            action: {}
+        )
         RoundButtonView(
             title: "连击",
             systemImage: nil,
             accent: PadTheme.accentRed,
             isActive: true,
+            diameter: 56,
+            action: {}
+        )
+        RoundButtonView(
+            title: nil,
+            systemImage: "circle.fill",
+            accent: PadTheme.accentRed,
+            isActive: false,
             diameter: 56,
             action: {}
         )
