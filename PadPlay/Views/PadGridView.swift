@@ -8,34 +8,48 @@ struct PadGridView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let gap: CGFloat = 10
+            // Thin chassis wells between pads (preview: seated silicone, not large gaps).
+            let gap: CGFloat = max(3, min(5, geo.size.width * 0.01))
+            let inset: CGFloat = gap
             let block = min(geo.size.width, geo.size.height)
-            let cell = (block - gap * 3) / 4
+            // 4 cells + 3 inter-gaps + 2 outer insets must fit in `block`.
+            let cell = max(1, (block - inset * 2 - gap * 3) / 4)
             let rows = controller.gridRowsTopFirst
+            let wellRadius = max(8, cell * 0.12)
 
-            VStack(spacing: gap) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: gap) {
-                        ForEach(row) { pad in
-                            ForcePadCell(
-                                pad: pad,
-                                side: cell,
-                                title: settings.t(pad.nameKey),
-                                subtitle: settings.t(pad.categoryKey),
-                                isLit: controller.litPads.contains(pad.id),
-                                isActive: controller.activePads.contains(pad.id),
-                                onDown: { force in
-                                    controller.padTouchDown(pad: pad, force: force)
-                                },
-                                onUp: {
-                                    controller.padTouchUp(pad: pad)
-                                }
-                            )
-                            .frame(width: cell, height: cell)
+            ZStack {
+                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
+                    .fill(PadTheme.chassisWell)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    )
+
+                VStack(spacing: gap) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                        HStack(spacing: gap) {
+                            ForEach(row) { pad in
+                                ForcePadCell(
+                                    pad: pad,
+                                    side: cell,
+                                    title: settings.t(pad.nameKey),
+                                    subtitle: settings.t(pad.categoryKey),
+                                    isLit: controller.litPads.contains(pad.id),
+                                    isActive: controller.activePads.contains(pad.id),
+                                    onDown: { force in
+                                        controller.padTouchDown(pad: pad, force: force)
+                                    },
+                                    onUp: {
+                                        controller.padTouchUp(pad: pad)
+                                    }
+                                )
+                                .frame(width: cell, height: cell)
+                            }
                         }
+                        .frame(height: cell)
                     }
-                    .frame(height: cell)
                 }
+                .padding(inset)
             }
             .frame(width: block, height: block)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -60,7 +74,7 @@ struct ForcePadCell: View {
             isLit: isLit,
             isActive: isActive,
             title: title,
-            subtitle: side >= 70 ? subtitle : "",
+            subtitle: side >= 64 ? subtitle : "",
             onDown: onDown,
             onUp: onUp
         )
@@ -92,37 +106,68 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
             subtitle: subtitle,
             isLit: isLit,
             isActive: isActive,
-            corner: max(6, side * 0.08)
+            corner: max(7, side * 0.1)
         )
     }
 }
 
+/// Silicone-style backlit pad: radial purple glow (idle always lit; hit brightens).
 final class PadUIView: UIView {
     var onDown: ((CGFloat?) -> Void)?
     var onUp: (() -> Void)?
+
+    private let glowLayer = CAGradientLayer()
+    private let sheenLayer = CAGradientLayer()
+    private let borderLayer = CAShapeLayer()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let stack = UIStackView()
     private var touching = false
+    private var corner: CGFloat = 10
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = false
-        clipsToBounds = true
-        backgroundColor = UIColor(white: 0.85, alpha: 0.25)
+        // Allow soft purple bloom outside the pad; content is masked via cornerRadius.
+        clipsToBounds = false
+        backgroundColor = .clear
+        layer.masksToBounds = false
 
-        titleLabel.font = .systemFont(ofSize: 16, weight: .bold)
-        subtitleLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        glowLayer.type = .radial
+        glowLayer.startPoint = CGPoint(x: 0.5, y: 0.42)
+        glowLayer.endPoint = CGPoint(x: 1.15, y: 1.15)
+        glowLayer.masksToBounds = true
+        layer.insertSublayer(glowLayer, at: 0)
+
+        sheenLayer.type = .axial
+        sheenLayer.colors = [
+            UIColor.white.withAlphaComponent(0.22).cgColor,
+            UIColor.white.withAlphaComponent(0.02).cgColor,
+            UIColor.clear.cgColor,
+        ]
+        sheenLayer.locations = [0, 0.35, 1]
+        sheenLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        sheenLayer.endPoint = CGPoint(x: 0.5, y: 0.55)
+        sheenLayer.masksToBounds = true
+        layer.insertSublayer(sheenLayer, at: 1)
+
+        borderLayer.fillColor = UIColor.clear.cgColor
+        borderLayer.strokeColor = UIColor.white.withAlphaComponent(0.22).cgColor
+        borderLayer.lineWidth = 1
+        layer.addSublayer(borderLayer)
+
+        titleLabel.font = .systemFont(ofSize: 15, weight: .bold)
+        subtitleLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         for label in [titleLabel, subtitleLabel] {
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true
             label.minimumScaleFactor = 0.55
-            label.textColor = UIColor(white: 0.85, alpha: 1)
+            label.textColor = PadTheme.UI.label
         }
         titleLabel.numberOfLines = 2
 
         stack.axis = .vertical
-        stack.spacing = 3
+        stack.spacing = 2
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.addArrangedSubview(titleLabel)
@@ -131,12 +176,26 @@ final class PadUIView: UIView {
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor),
-            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 4),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 5),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -5),
         ])
+
+        applyIdleGlow(lit: false, active: false)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        glowLayer.frame = bounds
+        glowLayer.cornerRadius = corner
+        sheenLayer.frame = bounds
+        sheenLayer.cornerRadius = corner
+        let path = UIBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), cornerRadius: corner)
+        borderLayer.path = path.cgPath
+        layer.cornerRadius = corner
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: corner).cgPath
+    }
 
     func apply(
         title: String,
@@ -148,16 +207,44 @@ final class PadUIView: UIView {
         titleLabel.text = title
         subtitleLabel.text = subtitle
         subtitleLabel.isHidden = subtitle.isEmpty
+        self.corner = corner
         layer.cornerRadius = corner
-        backgroundColor = isLit
-            ? UIColor(red: 0.78, green: 0.55, blue: 1.0, alpha: 0.92)
-            : UIColor(white: 0.88, alpha: 0.24)
-        layer.borderWidth = 1
-        layer.borderColor = UIColor(white: 1, alpha: 0.18).cgColor
-        transform = isActive ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
-        let text = isLit ? UIColor.white : UIColor(white: 0.82, alpha: 1)
-        titleLabel.textColor = text
-        subtitleLabel.textColor = isLit ? UIColor.white.withAlphaComponent(0.85) : UIColor(white: 0.55, alpha: 1)
+        applyIdleGlow(lit: isLit, active: isActive)
+        transform = isActive ? CGAffineTransform(scaleX: 0.97, y: 0.97) : .identity
+        setNeedsLayout()
+    }
+
+    private func applyIdleGlow(lit: Bool, active: Bool) {
+        // Pads are always purple silicone; hit/lit brightens the core.
+        let bright = lit || active
+        if bright {
+            glowLayer.colors = [
+                PadTheme.UI.purpleHitCore.cgColor,
+                PadTheme.UI.purpleHitMid.cgColor,
+                PadTheme.UI.purpleHitEdge.cgColor,
+            ]
+            layer.shadowColor = PadTheme.UI.purpleHitMid.cgColor
+            layer.shadowOpacity = 0.55
+            layer.shadowRadius = 10
+            layer.shadowOffset = .zero
+            borderLayer.strokeColor = UIColor.white.withAlphaComponent(0.42).cgColor
+            titleLabel.textColor = .white
+            subtitleLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+        } else {
+            glowLayer.colors = [
+                PadTheme.UI.purpleCore.cgColor,
+                PadTheme.UI.purpleMid.cgColor,
+                PadTheme.UI.purpleEdge.cgColor,
+            ]
+            layer.shadowColor = PadTheme.UI.purpleMid.cgColor
+            layer.shadowOpacity = 0.28
+            layer.shadowRadius = 6
+            layer.shadowOffset = .zero
+            borderLayer.strokeColor = UIColor.white.withAlphaComponent(0.18).cgColor
+            titleLabel.textColor = PadTheme.UI.label
+            subtitleLabel.textColor = PadTheme.UI.dimLabel
+        }
+        glowLayer.locations = [0, 0.42, 1]
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {

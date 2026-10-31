@@ -19,18 +19,18 @@ struct ContentView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.05, green: 0.04, blue: 0.07),
-                    Color(red: 0.09, green: 0.07, blue: 0.12),
-                    Color(red: 0.03, green: 0.03, blue: 0.04),
+                    Color(red: 0.04, green: 0.03, blue: 0.06),
+                    Color(red: 0.08, green: 0.06, blue: 0.11),
+                    Color(red: 0.02, green: 0.02, blue: 0.03),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             RadialGradient(
-                colors: [PadTheme.purple.opacity(0.18), .clear],
+                colors: [PadTheme.purple.opacity(0.22), .clear],
                 center: .center,
                 startRadius: 40,
-                endRadius: 520
+                endRadius: 560
             )
         }
     }
@@ -76,27 +76,49 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [PadTheme.chassisEdge, PadTheme.chassis],
+                        colors: [
+                            Color(red: 0.18, green: 0.16, blue: 0.20),
+                            PadTheme.chassisEdge,
+                            PadTheme.chassis,
+                            Color(red: 0.04, green: 0.035, blue: 0.05),
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
+                )
+                .overlay(
+                    // Soft plastic top sheen
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.10),
+                                    Color.white.opacity(0.02),
+                                    Color.clear,
+                                ],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .allowsHitTesting(false)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.14),
-                                    PadTheme.purple.opacity(0.4),
-                                    Color.white.opacity(0.06),
+                                    Color.white.opacity(0.22),
+                                    PadTheme.purple.opacity(0.45),
+                                    Color.white.opacity(0.08),
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1.5
+                            lineWidth: 1.6
                         )
                 )
-                .shadow(color: .black.opacity(0.55), radius: 18, y: 8)
+                .shadow(color: .black.opacity(0.6), radius: 20, y: 10)
+                .shadow(color: PadTheme.purple.opacity(0.12), radius: 28, y: 0)
 
             content()
         }

@@ -210,7 +210,20 @@ struct ControlClusterView: View {
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.07), Color.white.opacity(0.03)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+        )
     }
 
     private func chip(_ text: String) -> some View {
