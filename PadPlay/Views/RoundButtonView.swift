@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Recessed round control — white ring active state, no purple neon glow, no fill-white face.
+/// Recessed round control — vision A inset ring; selected = white ring only, no fill-white face.
+/// CSS: inset ~3.5px dark + light top; diameter `--btn-d` 56.
 struct RoundButtonView: View {
     let title: String?
     let systemImage: String?
@@ -17,39 +18,61 @@ struct RoundButtonView: View {
 
     private var size: CGFloat {
         if let diameter { return diameter }
-        return compact ? 38 : 44
+        return compact ? 40 : 56
     }
 
     private var iconFont: CGFloat {
-        max(11, size * 0.34)
+        max(12, size * 0.32)
     }
 
     private var titleFont: CGFloat {
         let long = (title?.count ?? 0) > 3
-        return max(9, size * (long ? 0.20 : 0.24))
+        return max(10, size * (long ? 0.18 : 0.20))
+    }
+
+    /// Recess band scales with CSS 3.5 / 56.
+    private var recessWidth: CGFloat {
+        max(2.5, size * (3.5 / 56.0))
     }
 
     var body: some View {
         let ringColor = isActive ? ChromeRing.activeColor : ChromeRing.idleColor
         let ringWidth = isActive ? ChromeRing.activeWidth : ChromeRing.idleWidth
+        let face = isActive ? PadTheme.roundButtonFaceActive : PadTheme.roundButtonFace
 
         Button(action: action) {
             VStack(spacing: caption == nil ? 0 : 3) {
                 ZStack {
-                    // Recessed mount
                     Circle()
-                        .fill(Color.black.opacity(0.5))
-                        .frame(width: size + 4, height: size + 4)
-
-                    // Face stays dark (knobCap) — never fill-white when selected.
-                    Circle()
-                        .fill(PadTheme.knobCap)
+                        .fill(face)
                         .frame(width: size, height: size)
+                        // Recessed dark band — CSS `inset 0 0 0 3.5px #0e0e11`
+                        .overlay(
+                            Circle()
+                                .strokeBorder(PadTheme.recessButtonDark, lineWidth: recessWidth)
+                        )
+                        // Light top inset — CSS `inset 0 4px 1px rgba(255,255,255,0.15)`
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.16),
+                                            Color.white.opacity(0.03),
+                                            Color.clear,
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .center
+                                    ),
+                                    lineWidth: 1.2
+                                )
+                                .padding(recessWidth * 0.2)
+                        )
+                        // Outer ring — idle #45454a; active white α0.75 (no fill-white face).
                         .overlay(
                             Circle()
                                 .stroke(ringColor, lineWidth: ringWidth)
                         )
-                        .shadow(color: .black.opacity(0.35), radius: 1.5, y: 1)
 
                     if let systemImage {
                         Image(systemName: systemImage)
@@ -57,11 +80,11 @@ struct RoundButtonView: View {
                             .foregroundStyle(
                                 accent == PadTheme.accentRed && systemImage == "circle.fill"
                                 ? PadTheme.accentRed
-                                : Color.white
+                                : Color.white.opacity(isActive ? 1.0 : 0.92)
                             )
                     } else if let title {
                         Text(title)
-                            .font(.system(size: titleFont, weight: .bold, design: .rounded))
+                            .font(.system(size: titleFont, weight: .semibold, design: .rounded))
                             .foregroundStyle(textColor)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
@@ -69,7 +92,7 @@ struct RoundButtonView: View {
                             .padding(max(4, size * 0.08))
                     }
                 }
-                .frame(width: size + 4, height: size + 4)
+                .frame(width: size, height: size)
 
                 if let caption {
                     Text(caption)
@@ -96,7 +119,7 @@ struct RoundButtonView: View {
         if let accent, accent == PadTheme.accentRed {
             return PadTheme.accentRed
         }
-        return Color.white.opacity(isActive ? 1.0 : 0.82)
+        return Color.white.opacity(isActive ? 1.0 : 0.86)
     }
 }
 

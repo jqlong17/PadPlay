@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Simple settings sheet — language first; room for more low-frequency actions later.
+/// Settings panel — language first; anchors from the pad-stage top-right gear (vision A).
 struct SettingsSheetView: View {
     @EnvironmentObject private var settings: AppSettings
     @Environment(\.dismiss) private var dismiss
@@ -28,8 +28,6 @@ struct SettingsSheetView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 
     private var languageRow: some View {

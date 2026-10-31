@@ -3,6 +3,9 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
+    @EnvironmentObject private var settings: AppSettings
+
+    @State private var showSettings = false
 
     var body: some View {
         GeometryReader { geo in
@@ -19,7 +22,7 @@ struct ContentView: View {
         PadTheme.chassis
     }
 
-    /// LEFT compact chrome | RIGHT 4×4 horizontal pad stage (mock proportions).
+    /// LEFT compact chrome | RIGHT top-bar gear + 4×4 pad stage (vision A).
     private func landscapeLayout(size: CGSize) -> some View {
         let inset = edgePadding(for: size)
         let innerH = size.height - inset * 2
@@ -31,8 +34,7 @@ struct ContentView: View {
         let usableH = max(0, innerH - chassisPad * 2)
         let usableW = max(0, innerW - chassisPad * 2)
 
-        // Pads are wider than tall (~1.384); grid is wider than a square block.
-        // Left chrome targets ~340pt content width (ACCEPT metrics); scale down on phone.
+        // Left chrome targets ~340pt content width (vision A `--left-w`); scale down on phone.
         let minLeft: CGFloat = narrow ? 168 : 220
         let maxLeft: CGFloat = narrow ? usableW * 0.38 : min(360, usableW * 0.34)
         var leftWidth = min(max(minLeft, usableW * 0.30), maxLeft)
@@ -45,18 +47,68 @@ struct ContentView: View {
             padWidth = max(0, usableW - leftWidth - gap)
         }
 
+        let chromeMetrics = LeftChromeMetrics(width: leftWidth, height: usableH)
+
         return deviceChassis {
             HStack(alignment: .center, spacing: gap) {
                 ControlClusterView()
                     .frame(width: leftWidth, alignment: .top)
                     .frame(maxHeight: .infinity, alignment: .top)
 
-                PadGridView()
-                    .frame(width: padWidth, height: padHeight)
+                padStageColumn(width: padWidth, height: padHeight, metrics: chromeMetrics)
             }
             .padding(chassisPad)
         }
         .frame(width: innerW, height: innerH)
+    }
+
+    /// Pad stage: slim top strip with settings gear (far right) + pad grid below.
+    private func padStageColumn(width: CGFloat, height: CGFloat, metrics: LeftChromeMetrics) -> some View {
+        let topBarH: CGFloat = max(28, 36 * metrics.scale)
+        let topBarBottom: CGFloat = max(4, 8 * metrics.scale)
+        let gearD = metrics.gearDiameter
+
+        return VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                settingsGearButton(diameter: gearD)
+            }
+            .frame(height: topBarH)
+            .padding(.bottom, topBarBottom)
+
+            PadGridView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: width, height: height)
+    }
+
+    /// Quiet gear — ⌀34, faint stroke rgba(255,255,255,0.18), near-transparent fill.
+    /// Sheet / popover anchors from this top-right control.
+    private func settingsGearButton(diameter: CGFloat) -> some View {
+        Button {
+            showSettings = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: max(12, diameter * 0.44), weight: .regular))
+                .foregroundStyle(Color.white.opacity(0.65))
+                .frame(width: diameter, height: diameter)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.03))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(settings.t("settings.title"))
+        .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+            SettingsSheetView()
+                .environmentObject(settings)
+                .frame(minWidth: 280, idealWidth: 300, minHeight: 220, idealHeight: 280)
+                .presentationCompactAdaptation(.popover)
+        }
     }
 
     private func deviceChassis<Content: View>(@ViewBuilder content: () -> Content) -> some View {
