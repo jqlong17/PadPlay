@@ -27,7 +27,7 @@ struct PadGridView: View {
                                     labelHeight: layout.labelH,
                                     title: settings.t(pad.nameKey),
                                     subtitle: settings.t(pad.categoryKey),
-                                    isLit: controller.litPads.contains(pad.id),
+                                    flash: controller.flashIntensity(for: pad.id),
                                     isActive: controller.activePads.contains(pad.id),
                                     onDown: { force in
                                         controller.padTouchDown(pad: pad, force: force)
@@ -111,7 +111,8 @@ struct ForcePadCell: View {
     let labelHeight: CGFloat
     let title: String
     let subtitle: String
-    let isLit: Bool
+    /// Strike intensity 0…1 from shared flashPad path (finger + Play/Loop).
+    let flash: CGFloat
     let isActive: Bool
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
@@ -120,68 +121,46 @@ struct ForcePadCell: View {
     /// Hard-edge rounded square — 8–12% of short side (mock).
     private var corner: CGFloat { shortSide * 0.10 }
 
-    /// Strike phase for rim-first hit light (shared finger + Play/Loop).
-    /// lit → hit peak; active without lit → held; neither → idle.
-    private enum StrikePhase {
-        case idle, hit, held
-    }
-
-    private var phase: StrikePhase {
-        if isLit { return .hit }
-        if isActive { return .held }
-        return .idle
+    /// 0…1 flash amount; held finger uses at least the held floor while down.
+    private var t: CGFloat {
+        let raw = min(1, max(0, flash))
+        if isActive { return max(raw, PadHitLight.heldIntensity) }
+        return raw
     }
 
     private var faceFill: Color {
-        switch phase {
-        case .idle: return PadHitLight.idleFill
-        case .hit: return PadHitLight.hitFill
-        case .held: return PadHitLight.heldFill
-        }
+        // Slight fill lift only — rim is the eye cue.
+        PadHitLight.mix(PadHitLight.idleFill, PadHitLight.hitFill, t)
     }
 
     private var rimColor: Color {
-        switch phase {
-        case .idle: return PadHitLight.idleStroke
-        case .hit: return PadHitLight.hitStroke
-        case .held: return PadHitLight.heldStroke
-        }
+        PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
     }
 
     private var rimWidth: CGFloat {
-        switch phase {
-        case .idle: return PadHitLight.idleStrokeWidth
-        case .hit: return PadHitLight.hitStrokeWidth
-        case .held: return PadHitLight.heldStrokeWidth
-        }
+        PadHitLight.idleStrokeWidth
+            + (PadHitLight.hitStrokeWidth - PadHitLight.idleStrokeWidth) * t
     }
 
-    private var centerHighlightOpacity: Double {
-        phase == .hit ? PadHitLight.centerHighlightOpacity : 0
+    private var innerRimOpacity: Double {
+        PadHitLight.innerHighlightOpacity * Double(t)
     }
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             ZStack {
-                // PAD-HIT-LIGHT.md: fill lift + edge color; optional soft center highlight.
-                // Clipped inside pad — no outer purple bloom.
+                // Rim-first: thin idle stroke → thick near-white + optional inner white α.
+                // Fill only slight lift. Clipped inside pad — no outer bloom / shadowRadius.
                 let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
                 shape
                     .fill(faceFill)
                     .overlay(
-                        RadialGradient(
-                            colors: [
-                                Color.white.opacity(centerHighlightOpacity),
-                                Color.white.opacity(0)
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: shortSide * 0.55
-                        )
-                        .clipShape(shape)
+                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
                     )
                     .overlay(
-                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
+                        shape
+                            .strokeBorder(Color.white.opacity(innerRimOpacity), lineWidth: PadHitLight.innerStrokeWidth)
+                            .padding(PadHitLight.innerStrokeInset)
                     )
                     .clipShape(shape)
 
@@ -192,7 +171,7 @@ struct ForcePadCell: View {
             }
             .frame(width: padWidth, height: padHeight)
             .scaleEffect(isActive ? 0.97 : 1)
-            .animation(.easeOut(duration: isLit ? PadHitLight.attackDuration : PadHitLight.decayDuration), value: phase)
+            // Decay is driven by published flash intensity (exp decay ticker) — no extra withAnimation.
             .animation(.easeOut(duration: 0.08), value: isActive)
 
             // Beginner drum name under the pad (mock position) — never swing/octave pro copy.
@@ -235,10 +214,10 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
 }
 
 #if DEBUG
-/// Tiny harness: idle / hit / held phases (Docs/PAD-HIT-LIGHT.md tokens).
+/// Tiny harness: idle / peak / held flash intensities (rim-first).
 #Preview("Pad hit light phases") {
     HStack(spacing: 16) {
-        ForEach([(false, false, "idle"), (true, false, "hit"), (false, true, "held")], id: \.2) { lit, active, label in
+        ForEach([(CGFloat(0), false, "idle"), (1.0, false, "peak"), (0.55, true, "held")], id: \.2) { flash, active, label in
             VStack(spacing: 8) {
                 ForcePadCell(
                     pad: PadInfo(id: 1, sampleName: "kick", nameKey: "pad.kick", categoryKey: "cat.kick"),
@@ -246,8 +225,8 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
                     padHeight: 86,
                     labelHeight: 16,
                     title: label,
-                    subtitle: "flash",
-                    isLit: lit,
+                    subtitle: "rim",
+                    flash: flash,
                     isActive: active,
                     onDown: { _ in },
                     onUp: {}

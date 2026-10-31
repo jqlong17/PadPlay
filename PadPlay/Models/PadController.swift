@@ -14,10 +14,10 @@ final class PadController: ObservableObject {
     @Published var octaveShift: Int = 0 // -1...1 mapped to pitch
 
     @Published var knobs: [Float] = [0.85, 0.22, 0.85, 0.5] // vol, reverb, filter, pitch(0.5=0)
-    /// Finger currently down (held look).
+    /// Finger currently down (held floor on flash intensity).
     @Published var activePads: Set<Int> = []
-    /// Pads showing strike rim (finger flash and/or Play/Loop note-on).
-    @Published var litPads: Set<Int> = []
+    /// Per-pad strike intensity 0…1. Drives rim flash for finger + Play/Loop.
+    @Published private(set) var padFlashIntensity: [Int: CGFloat] = [:]
     @Published var selectingRepeatParams = false
 
     @Published var transportPlay = false
@@ -27,7 +27,8 @@ final class PadController: ObservableObject {
     private weak var engine: DrumEngine?
     private var repeatTimers: [Int: Timer] = [:]
     private var repeatCounters: [Int: Int] = [:]
-    private var flashDecayWork: [Int: DispatchWorkItem] = [:]
+    private var flashTickTimer: Timer?
+    private var lastFlashTick: Date?
     private var cancellables = Set<AnyCancellable>()
 
     func bind(engine: DrumEngine) {
@@ -66,64 +67,88 @@ final class PadController: ObservableObject {
         }
     }
 
+    /// Current flash amount for a pad (0 = idle).
+    func flashIntensity(for id: Int) -> CGFloat {
+        padFlashIntensity[id] ?? 0
+    }
+
     // MARK: - Shared hit light (finger + Play/Loop)
 
-    /// Brief rim flash for a pad id on the current grid. Used by Play/Loop note-ons
-    /// and other non-touch triggers. One-shot Attack→Decay (no held). Retrigger restarts Attack.
-    func flashPad(id: Int) {
-        cancelFlashDecay(id)
-        pulseLit(id)
-        // Playback: peak then Decay — never stays in held.
-        scheduleFlashDecay(id: id, after: PadHitLight.attackDuration)
+    /// Reset intensity to peak (default 1). Playback and other non-touch triggers.
+    /// Retrigger always snaps back to peak — interrupts decay.
+    func flashPad(id: Int, peak: CGFloat = 1) {
+        let peak = min(1, max(0, peak))
+        var next = padFlashIntensity
+        next[id] = peak
+        padFlashIntensity = next
+        ensureFlashTicker()
     }
 
     /// Stop / stop-record: drop every strike flash back to idle.
     func clearPadFlashes() {
-        for work in flashDecayWork.values { work.cancel() }
-        flashDecayWork.removeAll()
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) {
-            litPads.removeAll()
-        }
+        flashTickTimer?.invalidate()
+        flashTickTimer = nil
+        lastFlashTick = nil
+        padFlashIntensity = [:]
     }
 
-    private func pulseLit(_ id: Int) {
-        // Snap off first so a rapid retrigger restarts Attack even if already lit.
-        if litPads.contains(id) {
-            var t = Transaction()
-            t.disablesAnimations = true
-            withTransaction(t) { litPads.remove(id) }
+    private func ensureFlashTicker() {
+        guard flashTickTimer == nil else { return }
+        lastFlashTick = Date()
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.tickFlashDecay() }
         }
-        withAnimation(.easeOut(duration: PadHitLight.attackDuration)) {
-            litPads.insert(id)
-        }
+        RunLoop.main.add(timer, forMode: .common)
+        flashTickTimer = timer
     }
 
-    private func cancelFlashDecay(_ id: Int) {
-        flashDecayWork[id]?.cancel()
-        flashDecayWork[id] = nil
-    }
+    /// Exponential decay: flash *= exp(-dt * k). Held pads settle to a floor until release.
+    private func tickFlashDecay() {
+        let now = Date()
+        let dt = max(0, now.timeIntervalSince(lastFlashTick ?? now))
+        lastFlashTick = now
+        guard dt > 0, !padFlashIntensity.isEmpty else {
+            if padFlashIntensity.isEmpty {
+                flashTickTimer?.invalidate()
+                flashTickTimer = nil
+            }
+            return
+        }
 
-    private func scheduleFlashDecay(id: Int, after delay: TimeInterval) {
-        cancelFlashDecay(id)
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            // Finger still down → leave peak and settle to held (activePads only).
-            if self.activePads.contains(id) {
-                withAnimation(.easeOut(duration: PadHitLight.decayDuration * 0.5)) {
-                    self.litPads.remove(id)
+        let k = PadHitLight.decayRate
+        let heldFloor = PadHitLight.heldIntensity
+        let eps = PadHitLight.intensityEpsilon
+        var next = padFlashIntensity
+        var anyLeft = false
+
+        for id in Array(next.keys) {
+            var v = next[id] ?? 0
+            if activePads.contains(id) {
+                // Settle toward held floor while finger is down (no full decay).
+                if v > heldFloor {
+                    v = heldFloor + (v - heldFloor) * CGFloat(exp(-dt * k))
+                } else {
+                    v = heldFloor
                 }
-                self.flashDecayWork[id] = nil
-                return
+                next[id] = v
+                anyLeft = true
+            } else {
+                v *= CGFloat(exp(-dt * k))
+                if v < eps {
+                    next.removeValue(forKey: id)
+                } else {
+                    next[id] = v
+                    anyLeft = true
+                }
             }
-            withAnimation(.easeOut(duration: PadHitLight.decayDuration)) {
-                self.litPads.remove(id)
-            }
-            self.flashDecayWork[id] = nil
         }
-        flashDecayWork[id] = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+
+        padFlashIntensity = next
+        if !anyLeft {
+            flashTickTimer?.invalidate()
+            flashTickTimer = nil
+            lastFlashTick = nil
+        }
     }
 
     // MARK: - Pads
@@ -142,20 +167,16 @@ final class PadController: ObservableObject {
     func padTouchUp(pad: PadInfo) {
         activePads.remove(pad.id)
         stopNoteRepeat(padId: pad.id)
-        // Release → Decay (same path as playback flash end).
-        scheduleFlashDecay(id: pad.id, after: 0)
+        // Release → exponential decay from current intensity (ticker already running).
+        ensureFlashTicker()
     }
 
     private func hit(pad: PadInfo, velocity: Double, sustained: Bool) {
         if sustained {
             activePads.insert(pad.id)
-            cancelFlashDecay(pad.id)
-            // Finger: Attack to hit peak, then settle to held while still down.
-            pulseLit(pad.id)
-            scheduleFlashDecay(id: pad.id, after: PadHitLight.attackDuration)
-        } else {
-            flashPad(id: pad.id)
         }
+        // Shared path: intensity → 1 (retrigger). Optional velocity scale kept near 1 for v1.
+        flashPad(id: pad.id, peak: 1)
         let pitch = Float(octaveShift * 12) + ((knobs[3] - 0.5) * 24)
         engine?.pitchSemitones = pitch
         engine?.triggerPad(padId: pad.id, sampleName: pad.sampleName, velocity: velocity, bank: padBank.rawValue)
