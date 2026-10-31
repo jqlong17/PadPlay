@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Vision A knobs: recessed inset ring + white rim + white tip.
-/// Mid value 0.5 → indicator at 6 o'clock (into the bottom ring gap).
-/// CSS: inset 0 0 0 ~9px dark + light top inset; diameter `--knob-d` 84.
+/// VISUAL-P0 knobs: dark track + purple value arc + gradient cap + angle pointer.
+/// Layout token `--knob-d` 84 stays in `LeftChromeMetrics` (passed as `diameter`).
+/// Value 0…1 → pointer −150°…+150° (0° = 12 o'clock; 60° bottom gap for label).
 struct KnobView: View {
     let index: Int
     @Binding var value: Float
@@ -12,10 +12,14 @@ struct KnobView: View {
 
     @State private var dragStart: Float = 0
 
-    /// Value maps across ~270° with a bottom ring gap; mid (0.5) points at 6 o'clock.
-    /// Pill rests at 12 o'clock before rotation — add 180° so rest/mid reads downward.
-    private var angle: Double {
-        Double(value) * 270 - 135 + 180
+    /// Designer angle: 0° at 12 o'clock, travel −150…+150 over value 0…1.
+    private var angleDegrees: Double {
+        Double(min(1, max(0, value))) * 300.0 - 150.0
+    }
+
+    private var normalizedProgress: CGFloat {
+        let clamped = min(max(angleDegrees, -150.0), 150.0)
+        return CGFloat((clamped + 150.0) / 300.0)
     }
 
     var body: some View {
@@ -34,78 +38,70 @@ struct KnobView: View {
     }
 
     private func knobColumn(outer: CGFloat) -> some View {
-        // Inner cap sits inside the ~9pt recessed ring band.
-        let recess: CGFloat = max(7, outer * (9.0 / 84.0))
-        let cap = max(28, outer - recess * 2 - 2)
+        // Scale P0 insets from the 84pt reference so metrics.scale stays proportional.
+        let trackInset = outer * (2.5 / 84.0)
+        let capInset = outer * (9.0 / 84.0)
+        let capSize = max(28, outer - capInset * 2)
+        let trackWidth = max(2.0, outer * (2.5 / 84.0))
+        let pointerW = max(2.0, outer * (2.5 / 84.0))
+        let pointerH = max(9.0, outer * (12.0 / 84.0))
+
         return VStack(spacing: 6) {
             ZStack {
-                // Face + outer white rim
+                // 1. Dark track — 300° arc, 60° bottom gap (no cheap white ring).
+                Circle()
+                    .trim(from: 0.0, to: 300.0 / 360.0)
+                    .stroke(
+                        Color.white.opacity(0.07),
+                        style: StrokeStyle(lineWidth: trackWidth, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(120))
+                    .padding(trackInset)
+
+                // 2. Active purple value arc + glow.
+                Circle()
+                    .trim(from: 0.0, to: (300.0 / 360.0) * normalizedProgress)
+                    .stroke(
+                        Color(hex: 0xA855F7),
+                        style: StrokeStyle(lineWidth: trackWidth, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(120))
+                    .shadow(color: Color(hex: 0xA855F7, alpha: 0.50), radius: 4, x: 0, y: 0)
+                    .padding(trackInset)
+
+                // 3. Gradient cap + drop shadow + hairline rim.
                 Circle()
                     .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(red: 56 / 255, green: 56 / 255, blue: 60 / 255),
-                                Color(red: 30 / 255, green: 30 / 255, blue: 34 / 255),
-                            ],
-                            center: UnitPoint(x: 0.5, y: 0.35),
-                            startRadius: 1,
-                            endRadius: outer * 0.55
+                        LinearGradient(
+                            colors: [Color(hex: 0x323236), Color(hex: 0x18181B)],
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
                     )
-                    .frame(width: outer, height: outer)
+                    .frame(width: capSize, height: capSize)
+                    .shadow(color: Color.black.opacity(0.85), radius: 7, x: 0, y: 8)
                     .overlay(
                         Circle()
-                            .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
-                    )
-                    // Recessed dark band — CSS `inset 0 0 0 9px #0f0f12`
-                    .overlay(
-                        Circle()
-                            .strokeBorder(PadTheme.recessDark, lineWidth: recess)
-                    )
-                    // Light top inset — CSS `inset 0 10px 2px rgba(255,255,255,0.12)`
-                    .overlay(
-                        Circle()
-                            .stroke(
+                            .strokeBorder(
                                 LinearGradient(
                                     colors: [
                                         Color.white.opacity(0.18),
-                                        Color.white.opacity(0.04),
-                                        Color.clear,
+                                        Color.white.opacity(0.03),
                                     ],
                                     startPoint: .top,
-                                    endPoint: .center
+                                    endPoint: .bottom
                                 ),
-                                lineWidth: 2
+                                lineWidth: 0.5
                             )
-                            .padding(recess * 0.15)
-                            .blur(radius: 0.4)
                     )
-                    .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
 
-                // Inner rotating cap + indicator
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    PadTheme.metalHighlight.opacity(0.9),
-                                    PadTheme.metal,
-                                    PadTheme.knobCap,
-                                ],
-                                center: UnitPoint(x: 0.5, y: 0.32),
-                                startRadius: 1,
-                                endRadius: cap * 0.72
-                            )
-                        )
-
-                    // Short white pill — mid rests near 6 o'clock on the inner cap.
-                    Capsule()
-                        .fill(Color.white.opacity(0.95))
-                        .frame(width: max(3, cap * 0.07), height: max(7, cap * 0.18))
-                        .offset(y: -cap * 0.28)
-                        .rotationEffect(.degrees(angle))
-                }
-                .frame(width: cap, height: cap)
+                // 4. Real angle pointer — white + purple glow; 0° = 12 o'clock.
+                Capsule(style: .continuous)
+                    .fill(Color.white)
+                    .frame(width: pointerW, height: pointerH)
+                    .shadow(color: Color(hex: 0xC084FC), radius: 6, x: 0, y: 0)
+                    .offset(y: -(capSize * 0.5 - max(8, outer * (10.0 / 84.0))))
+                    .rotationEffect(.degrees(angleDegrees))
             }
             .frame(width: outer, height: outer)
             .gesture(
@@ -117,6 +113,7 @@ struct KnobView: View {
                     }
             )
             .accessibilityLabel(title.isEmpty ? "Knob \(index + 1)" : title)
+            .accessibilityValue(Text("\(Int((Double(value) * 300 - 150).rounded()))°"))
 
             Text(title.isEmpty ? "\(index + 1)" : title)
                 .font(.system(size: max(11, min(13, outer * 0.155)), weight: .semibold, design: .rounded))
@@ -127,3 +124,22 @@ struct KnobView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Knob P0 angles") {
+    HStack(spacing: 24) {
+        ForEach([(-40.0, "−40°"), (25.0, "+25°"), (-110.0, "−110°"), (95.0, "+95°")], id: \.1) { deg, label in
+            VStack(spacing: 8) {
+                KnobView(
+                    index: 0,
+                    value: .constant(Float((deg + 150) / 300)),
+                    title: label,
+                    diameter: 84
+                )
+            }
+        }
+    }
+    .padding(24)
+    .background(PadTheme.chassis)
+}
+#endif
