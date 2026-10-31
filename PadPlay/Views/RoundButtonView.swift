@@ -7,12 +7,27 @@ struct RoundButtonView: View {
     var accent: Color? = nil
     var isActive: Bool = false
     var pulse: Bool = false
+    /// Face diameter. Defaults keep prior compact/regular sizes.
+    var diameter: CGFloat? = nil
     var compact: Bool = false
     let action: () -> Void
     var longPress: (() -> Void)? = nil
 
+    private var size: CGFloat {
+        if let diameter { return diameter }
+        return compact ? 38 : 44
+    }
+
+    private var iconFont: CGFloat {
+        max(11, size * 0.34)
+    }
+
+    private var titleFont: CGFloat {
+        let long = (title?.count ?? 0) > 3
+        return max(9, size * (long ? 0.20 : 0.24))
+    }
+
     var body: some View {
-        let size: CGFloat = compact ? 38 : 44
         let ringColor: Color = {
             if isActive {
                 if let accent, accent == PadTheme.accentRed { return PadTheme.accentRed.opacity(0.9) }
@@ -39,7 +54,7 @@ struct RoundButtonView: View {
 
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: compact ? 13 : 15, weight: .semibold))
+                        .font(.system(size: iconFont, weight: .semibold))
                         .foregroundStyle(
                             accent == PadTheme.accentRed && systemImage == "circle.fill"
                             ? PadTheme.accentRed
@@ -47,12 +62,12 @@ struct RoundButtonView: View {
                         )
                 } else if let title {
                     Text(title)
-                        .font(.system(size: title.count > 3 ? 10 : 12, weight: .bold, design: .rounded))
+                        .font(.system(size: titleFont, weight: .bold, design: .rounded))
                         .foregroundStyle(textColor)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.65)
-                        .padding(5)
+                        .padding(max(4, size * 0.08))
                 }
             }
             .frame(width: size + 4, height: size + 4)
@@ -81,6 +96,7 @@ struct LabeledRoundButton: View {
     var accent: Color? = nil
     var isActive: Bool = false
     var pulse: Bool = false
+    var diameter: CGFloat? = nil
     let action: () -> Void
     var longPress: (() -> Void)? = nil
 
@@ -91,10 +107,10 @@ struct LabeledRoundButton: View {
             accent: accent,
             isActive: isActive,
             pulse: pulse,
+            diameter: diameter,
             action: action,
             longPress: longPress
         )
-        .frame(maxWidth: .infinity)
         .accessibilityLabel(label)
     }
 }

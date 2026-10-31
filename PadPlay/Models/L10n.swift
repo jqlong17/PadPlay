@@ -42,6 +42,16 @@ enum L10n {
         "btn.repeat": [.zh: "连击", .en: "Hold-Repeat"],
         "btn.clear": [.zh: "清轨", .en: "Clear"],
 
+        // Settings sheet
+        "settings.title": [.zh: "设置", .en: "Settings"],
+        "settings.done": [.zh: "完成", .en: "Done"],
+        "settings.language": [.zh: "语言", .en: "Language"],
+        "settings.language.label": [.zh: "界面语言", .en: "App language"],
+        "settings.footer": [
+            .zh: "后续更多低频选项也会放在这里，避免挤乱左栏 2×3。",
+            .en: "More low-frequency options will land here so the 2×3 grids stay clean.",
+        ],
+
         // Transport
         "tr.rewind": [.zh: "开头", .en: "Start"],
         "tr.stop": [.zh: "停止", .en: "Stop"],

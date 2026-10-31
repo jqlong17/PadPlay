@@ -1,12 +1,14 @@
 import SwiftUI
 
-/// Hardware-inspired left cluster: 4 knobs + 2×3 round buttons + 2×3 circular transport.
-/// Labels/capabilities are beginner-friendly (ZH default, EN via toggle).
-/// No purple neon on function / transport (TOKENS-from-mock).
+/// Hardware-inspired left cluster with locked faceplate metrics (ACCEPT-P0-and-next).
+/// Brand + status → knobs 2×2 → function 2×3 → transport 2×3 → Settings (col 1).
+/// Language lives in Settings sheet (ZH default). No purple neon on chrome.
 struct ControlClusterView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
     @EnvironmentObject private var settings: AppSettings
+
+    @State private var showSettings = false
 
     private var knobLabels: [String] {
         [
@@ -18,101 +20,175 @@ struct ControlClusterView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Brand — PadPlay + optional 中/EN; drop subtitle stack to match mock height.
-            HStack(alignment: .center, spacing: 6) {
-                Text("PadPlay")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(PadTheme.brand)
-                Spacer(minLength: 4)
-                languageToggle
-            }
+        GeometryReader { geo in
+            let m = LeftChromeMetrics(width: geo.size.width, height: geo.size.height)
 
-            // Quiet single-line status (no purple BPM card).
-            HStack(spacing: 6) {
-                Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(PadTheme.dimLabel)
-                Text("·")
-                    .foregroundStyle(PadTheme.dimLabel.opacity(0.6))
-                Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(PadTheme.dimLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Spacer(minLength: 0)
-            }
+            VStack(alignment: .leading, spacing: 0) {
+                brandBlock(m)
+                    .padding(.bottom, m.brandBottom)
 
-            // 4 rotary knobs (2×2)
-            VStack(spacing: 4) {
-                HStack(spacing: 8) {
-                    knob(2)
-                    knob(3)
-                }
-                HStack(spacing: 8) {
-                    knob(0)
-                    knob(1)
-                }
-            }
-            .padding(.top, 2)
+                knobsBlock(m)
+                    .frame(width: m.threeColWidth)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, m.blockGutter)
 
-            // 2×3 function buttons — face labels only; 连击 uses red ink when active.
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    funcBtn(settings.t("btn.kit")) { controller.pressPadBank() }
-                    funcBtn(settings.t("btn.velocity")) { controller.pressVelocityType() }
-                    funcBtn(settings.t("btn.metronome"), active: engine.metronomeOn) {
+                buttonGrid(m) {
+                    funcBtn(settings.t("btn.kit"), diameter: m.buttonDiameter) {
+                        controller.pressPadBank()
+                    }
+                    funcBtn(settings.t("btn.velocity"), diameter: m.buttonDiameter) {
+                        controller.pressVelocityType()
+                    }
+                    funcBtn(
+                        settings.t("btn.metronome"),
+                        diameter: m.buttonDiameter,
+                        active: engine.metronomeOn
+                    ) {
                         controller.pressMode()
                     }
-                }
-                HStack(spacing: 6) {
                     funcBtn(
                         settings.t("btn.tap"),
-                        active: false,
+                        diameter: m.buttonDiameter,
                         pulse: engine.tapFlash
                     ) {
                         controller.pressTapTempo()
                     }
                     funcBtn(
                         settings.t("btn.repeat"),
+                        diameter: m.buttonDiameter,
                         accent: PadTheme.accentRed,
                         active: controller.noteRepeatOn
                     ) {
                         controller.pressNoteRepeat()
                     }
-                    funcBtn(settings.t("btn.clear")) {
+                    funcBtn(settings.t("btn.clear"), diameter: m.buttonDiameter) {
                         engine.clearPattern()
                     }
                 }
-            }
+                .frame(width: m.threeColWidth)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, m.blockGutter)
 
-            // Transport 2×3 — white icons / white active ring; record stays red.
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
-                    transport(icon: "backward.end.fill", key: "tr.rewind") { controller.pressRewind() }
-                    transport(icon: "stop.fill", key: "tr.stop") { controller.pressStop() }
-                    transport(icon: "forward.end.fill", key: "tr.forward") { controller.pressFastForward() }
-                }
-                HStack(spacing: 6) {
+                buttonGrid(m) {
+                    transport(icon: "backward.end.fill", key: "tr.rewind", diameter: m.buttonDiameter) {
+                        controller.pressRewind()
+                    }
+                    transport(icon: "stop.fill", key: "tr.stop", diameter: m.buttonDiameter) {
+                        controller.pressStop()
+                    }
+                    transport(icon: "forward.end.fill", key: "tr.forward", diameter: m.buttonDiameter) {
+                        controller.pressFastForward()
+                    }
                     transport(
                         icon: "circle.fill",
                         key: "tr.record",
+                        diameter: m.buttonDiameter,
                         accent: PadTheme.accentRed,
                         active: controller.transportRecord
                     ) { controller.pressRecord() }
                     transport(
                         icon: "play.fill",
                         key: "tr.play",
+                        diameter: m.buttonDiameter,
                         active: controller.transportPlay
                     ) { controller.pressPlay() }
                     transport(
                         icon: "repeat",
                         key: "tr.loop",
+                        diameter: m.buttonDiameter,
                         active: controller.transportLoop
                     ) { controller.pressLoop() }
                 }
+                .frame(width: m.threeColWidth)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, m.settingsGutter)
+
+                settingsRow(m)
+                    .frame(width: m.threeColWidth, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Spacer(minLength: 0)
             }
-            .padding(.top, 2)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsSheetView()
+                .environmentObject(settings)
+        }
+    }
+
+    // MARK: - Sections
+
+    private func brandBlock(_ m: LeftChromeMetrics) -> some View {
+        VStack(alignment: .leading, spacing: max(2, 4 * m.scale)) {
+            Text("PadPlay")
+                .font(.system(size: m.titleSize, weight: .bold, design: .rounded))
+                .foregroundStyle(PadTheme.brand)
+
+            HStack(spacing: 6) {
+                Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
+                    .font(.system(size: m.statusSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(PadTheme.dimLabel)
+                Text("·")
+                    .foregroundStyle(PadTheme.dimLabel.opacity(0.6))
+                Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
+                    .font(.system(size: m.statusSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(PadTheme.dimLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func knobsBlock(_ m: LeftChromeMetrics) -> some View {
+        // 2×2 knobs, overall centered on the shared three-column width.
+        VStack(spacing: m.knobRowGap) {
+            HStack(spacing: m.knobColGap) {
+                knob(2, diameter: m.knobDiameter)
+                knob(3, diameter: m.knobDiameter)
+            }
+            HStack(spacing: m.knobColGap) {
+                knob(0, diameter: m.knobDiameter)
+                knob(1, diameter: m.knobDiameter)
+            }
+        }
+        .frame(width: m.knobGridWidth)
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    /// Strict 2×3 using shared buttonDiameter / colGap / rowGap (function + transport).
+    private func buttonGrid<Content: View>(
+        _ m: LeftChromeMetrics,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.fixed(m.buttonSlot), spacing: m.colGap),
+                GridItem(.fixed(m.buttonSlot), spacing: m.colGap),
+                GridItem(.fixed(m.buttonSlot), spacing: m.colGap),
+            ],
+            alignment: .center,
+            spacing: m.rowGap
+        ) {
+            content()
+        }
+        .frame(width: m.threeColWidth)
+    }
+
+    private func settingsRow(_ m: LeftChromeMetrics) -> some View {
+        // Settings ⌀44, left-aligned to column 1 center of the shared 3-col grid.
+        HStack(spacing: 0) {
+            RoundButtonView(
+                title: nil,
+                systemImage: "gearshape.fill",
+                diameter: m.settingsDiameter
+            ) {
+                showSettings = true
+            }
+            .accessibilityLabel(settings.t("settings.title"))
+            .frame(width: m.buttonSlot, height: m.settingsDiameter + 4)
 
             Spacer(minLength: 0)
         }
@@ -120,45 +196,21 @@ struct ControlClusterView: View {
 
     // MARK: - Pieces
 
-    private var languageToggle: some View {
-        Button {
-            settings.toggleLanguage()
-        } label: {
-            HStack(spacing: 0) {
-                Text("中")
-                    .foregroundStyle(settings.language == .zh ? Color.white : PadTheme.dimLabel)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(settings.language == .zh ? Color.white.opacity(0.18) : Color.clear)
-                Text("EN")
-                    .foregroundStyle(settings.language == .en ? Color.white : PadTheme.dimLabel)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(settings.language == .en ? Color.white.opacity(0.18) : Color.clear)
-            }
-            .font(.system(size: 10, weight: .bold, design: .rounded))
-            .background(Capsule().fill(Color.white.opacity(0.08)))
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Language")
-    }
-
-    private func knob(_ i: Int) -> some View {
+    private func knob(_ i: Int, diameter: CGFloat) -> some View {
         KnobView(
             index: i,
             value: Binding(
                 get: { controller.knobs[i] },
                 set: { controller.setKnob(index: i, value: $0) }
             ),
-            title: knobLabels[i]
+            title: knobLabels[i],
+            diameter: diameter
         )
-        .frame(maxWidth: .infinity)
     }
 
     private func funcBtn(
         _ label: String,
+        diameter: CGFloat,
         accent: Color? = nil,
         active: Bool = false,
         pulse: Bool = false,
@@ -169,13 +221,16 @@ struct ControlClusterView: View {
             accent: accent,
             isActive: active,
             pulse: pulse,
+            diameter: diameter,
             action: action
         )
+        .frame(width: diameter + 4, height: diameter + 4)
     }
 
     private func transport(
         icon: String,
         key: String,
+        diameter: CGFloat,
         accent: Color? = nil,
         active: Bool = false,
         action: @escaping () -> Void
@@ -185,10 +240,55 @@ struct ControlClusterView: View {
             systemImage: icon,
             accent: accent,
             isActive: active,
-            compact: true,
+            diameter: diameter,
             action: action
         )
         .accessibilityLabel(settings.t(key))
-        .frame(maxWidth: .infinity)
+        .frame(width: diameter + 4, height: diameter + 4)
     }
+}
+
+// MARK: - Locked metrics (ACCEPT-P0-and-next, ref width 340pt)
+
+private struct LeftChromeMetrics {
+    /// Designer reference content width.
+    static let refWidth: CGFloat = 340
+    /// Approximate stacked height at scale 1.0 (brand→settings).
+    static let refHeight: CGFloat = 560
+
+    let width: CGFloat
+    let height: CGFloat
+
+    var scale: CGFloat {
+        let byWidth = width / Self.refWidth
+        let byHeight = height / Self.refHeight
+        // Keep proportions; phone landscape shrinks, iPad can sit near 1.0.
+        return min(1.05, max(0.58, min(byWidth, byHeight)))
+    }
+
+    // Brand
+    var titleSize: CGFloat { 22 * scale }
+    var statusSize: CGFloat { 13 * scale }
+    var brandBottom: CGFloat { 16 * scale }
+
+    // Knobs ⌀72, col 20 / row 12
+    var knobDiameter: CGFloat { 72 * scale }
+    var knobColGap: CGFloat { 20 * scale }
+    var knobRowGap: CGFloat { 12 * scale }
+    var knobGridWidth: CGFloat { knobDiameter * 2 + knobColGap }
+
+    // Function + transport share ⌀52, colGap 16 / rowGap 14
+    var buttonDiameter: CGFloat { 52 * scale }
+    var colGap: CGFloat { 16 * scale }
+    var rowGap: CGFloat { 14 * scale }
+    /// Slot includes recessed mount (+4) so columns stay centered on the face.
+    var buttonSlot: CGFloat { buttonDiameter + 4 }
+    var threeColWidth: CGFloat { buttonSlot * 3 + colGap * 2 }
+
+    // Gutters
+    var blockGutter: CGFloat { 20 * scale }
+    var settingsGutter: CGFloat { 16 * scale }
+
+    // Settings ⌀44 — aligned to column 1
+    var settingsDiameter: CGFloat { 44 * scale }
 }
