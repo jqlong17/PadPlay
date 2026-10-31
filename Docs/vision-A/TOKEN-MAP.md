@@ -24,3 +24,7 @@ Source: `patch-vision-A.css` + `patch-vision-C.txt`. App Icon unchanged. PadHitL
 | `--pad-edge` | `#9B3FE0` | `PadTheme.padEdge` / idle rim |
 | `.pad-label` | `#dcdce2` weight 600 | `PadTheme.padLabel` + `.semibold` |
 | hit A++ | rim + soft outer halo | `PadHitLight` unchanged |
+
+## Calibration mode (debug)
+
+Settings → **矫正模式 / Calibration mode** (default OFF, persisted). When ON, the main stage is a wireframe HUD only (rects, crosses, ids, gap labels) covering left chrome (knobs / btn / transport), gear, and pads 1–16. **复制布局报告** pastes QA schema `PadPlay layout report v0` (frames in pt relative to root chassis content; token + measured−token deltas for left-w / cluster / knob⌀ / btn⌀ / gear⌀ / sectionGap / knobCol / knobRow / btnCol; padGapH/V measured only). App Icon and Recipe A++ hit path unchanged when mode is OFF.

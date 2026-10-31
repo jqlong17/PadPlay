@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var calibration: CalibrationLayoutStore
 
     @State private var showSettings = false
 
@@ -50,16 +51,36 @@ struct ContentView: View {
         let chromeMetrics = LeftChromeMetrics(width: leftWidth, height: usableH)
 
         return deviceChassis {
-            HStack(alignment: .center, spacing: gap) {
-                ControlClusterView()
-                    .frame(width: leftWidth, alignment: .top)
-                    .frame(maxHeight: .infinity, alignment: .top)
+            Group {
+                if settings.calibrationMode {
+                    // Wireframe HUD only — no real knobs/pads; same column metrics as live layout.
+                    CalibrationWireframeView(
+                        leftWidth: leftWidth,
+                        padWidth: padWidth,
+                        padHeight: padHeight,
+                        columnGap: gap,
+                        metrics: chromeMetrics,
+                        showSettings: $showSettings
+                    )
+                } else {
+                    HStack(alignment: .center, spacing: gap) {
+                        ControlClusterView()
+                            .frame(width: leftWidth, alignment: .top)
+                            .frame(maxHeight: .infinity, alignment: .top)
 
-                padStageColumn(width: padWidth, height: padHeight, metrics: chromeMetrics)
+                        padStageColumn(width: padWidth, height: padHeight, metrics: chromeMetrics)
+                    }
+                }
             }
             .padding(chassisPad)
         }
         .frame(width: innerW, height: innerH)
+        .onAppear {
+            calibration.screenSize = size
+        }
+        .onChange(of: size) { _, new in
+            calibration.screenSize = new
+        }
     }
 
     /// Pad stage: slim top strip with settings gear (far right) + pad grid below.
@@ -104,11 +125,16 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(settings.t("settings.title"))
         .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-            SettingsSheetView()
-                .environmentObject(settings)
-                .frame(minWidth: 280, idealWidth: 300, minHeight: 220, idealHeight: 280)
-                .presentationCompactAdaptation(.popover)
+            settingsPopover
         }
+    }
+
+    private var settingsPopover: some View {
+        SettingsSheetView()
+            .environmentObject(settings)
+            .environmentObject(calibration)
+            .frame(minWidth: 280, idealWidth: 300, minHeight: 280, idealHeight: 360)
+            .presentationCompactAdaptation(.popover)
     }
 
     private func deviceChassis<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -135,5 +161,6 @@ struct ContentView: View {
         .environmentObject(DrumEngine())
         .environmentObject(PadController())
         .environmentObject(AppSettings())
+        .environmentObject(CalibrationLayoutStore())
         .preferredColorScheme(.dark)
 }
