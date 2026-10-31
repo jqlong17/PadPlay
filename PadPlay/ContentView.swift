@@ -32,16 +32,16 @@ struct ContentView: View {
         let usableW = max(0, innerW - chassisPad * 2)
 
         // Pads are wider than tall (~1.384); grid is wider than a square block.
-        // Prefer giving the pad stage most of the width; left chrome stays narrow.
-        let minLeft: CGFloat = narrow ? 148 : 196
-        let maxLeft: CGFloat = narrow ? usableW * 0.34 : usableW * 0.32
-        var leftWidth = min(max(minLeft, usableW * 0.28), maxLeft)
+        // Left chrome targets ~340pt content width (ACCEPT metrics); scale down on phone.
+        let minLeft: CGFloat = narrow ? 168 : 220
+        let maxLeft: CGFloat = narrow ? usableW * 0.38 : min(360, usableW * 0.34)
+        var leftWidth = min(max(minLeft, usableW * 0.30), maxLeft)
         var padWidth = max(0, usableW - leftWidth - gap)
-        var padHeight = usableH
+        let padHeight = usableH
 
         // If pad stage would be too narrow for 4 horizontal pads, shrink left further.
         if padWidth < usableH * 0.95 {
-            leftWidth = min(leftWidth, max(120, usableW * 0.26))
+            leftWidth = min(leftWidth, max(148, usableW * 0.28))
             padWidth = max(0, usableW - leftWidth - gap)
         }
 
