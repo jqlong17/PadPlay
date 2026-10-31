@@ -1,6 +1,6 @@
 # PadPlay（打击垫）
 
-iPad 优先的 SwiftUI 打击垫 App：左侧保持旋钮 + 小圆钮 + 圆形走带的硬件感布局，右侧 **固定 4×4 正方形垫格**，内置鼓组采样，无需外接电脑即可发声。
+iPhone / iPad 横屏专用的 SwiftUI 打击垫 App（仅 Landscape Left / Right）：左侧保持旋钮 + 小圆钮 + 圆形走带的硬件感布局，右侧 **固定 4×4 正方形垫格**，内置鼓组采样，无需外接电脑即可发声。
 
 **PadPlay** 自有品牌；布局仅作常见 Pad 控制器致敬，与任何硬件商标无关。
 
@@ -18,8 +18,8 @@ iPad 优先的 SwiftUI 打击垫 App：左侧保持旋钮 + 小圆钮 + 圆形�
 ## 打开与运行
 
 1. 打开 `PadPlay.xcodeproj`
-2. 目标 **PadPlay**，设备选 **iPad**，优先横屏
-3. Signing 选好 Team → **Run (⌘R)**
+2. 目标 **PadPlay**，设备选 **iPhone** 或 **iPad**（系统会锁定横屏）
+3. Signing 使用工程内已填 Team（`T626DDUR47`）→ **Run (⌘R)**
 4. 点右侧垫格应立即有鼓声
 
 ## 左侧控件（新手文案）
