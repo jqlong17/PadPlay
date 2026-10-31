@@ -34,10 +34,26 @@ enum PadTheme {
 
     /// Pad face width ÷ height from mock (~191×138).
     static let padAspect: CGFloat = 1.384
+
+    /// Pad corner radius as a fraction of the short side (designer P1 lock).
+    static let padCornerFraction: CGFloat = 0.085
 }
 
-/// Pad strike rim flash — PAD-HIT-LIGHT **v2.1 Recipe A+** (install default).
-/// Eye cue is bright rim; fill only a slight lift. No outer bloom / large shadowRadius.
+/// Left-chrome selected / idle ring — white stroke only, no purple neon, no fill-white face.
+enum ChromeRing {
+    static let idleWidth: CGFloat = 1.1
+    /// Active = idle + 1pt (≈2.1).
+    static let activeWidth: CGFloat = idleWidth + 1.0
+    static let idleColor = Color.white.opacity(0.28)
+    static let activeColor = Color.white.opacity(0.9)
+    /// Transport caption under icon, if ever shown (≤10pt gray).
+    static let transportCaptionSize: CGFloat = 10
+    static let transportCaptionColor = Color.white.opacity(0.45)
+}
+
+/// Pad strike rim flash — PAD-HIT-LIGHT **v2.2 Recipe A++** (install default).
+/// A+ rim + inset, plus soft outer perimeter halo (CSS box-shadow parity).
+/// Eye cue is bright rim + tight halo; fill only a slight lift.
 /// Animate via published flash intensity 0…1 (exponential decay). Easy to retune here.
 enum PadHitLight {
     // MARK: Fill (secondary — slight lift only)
@@ -69,6 +85,32 @@ enum PadHitLight {
     /// Inset ring stroke ~1.75pt, clipped inside pad.
     static let innerStrokeWidth: CGFloat = 1.75
     static let innerStrokeInset: CGFloat = 2.0
+
+    // MARK: Soft outer halo — Recipe A++ (CSS box-shadow parity)
+    //
+    // Peak CSS:
+    //   0 0 6px 2px rgba(245,232,255,0.50)
+    //   0 0 10px 3px rgba(255,255,255,0.28)
+    // Drawn as stroked rings + blur (perimeter only — not a filled pad bloom).
+
+    /// Lilac halo — #F5E8FF.
+    static let haloLilac = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255)
+    /// CSS layer 1 peak α.
+    static let haloLilacOpacity: Double = 0.50
+    /// CSS blur ≈ 6px.
+    static let haloLilacBlur: CGFloat = 6
+    /// CSS spread ≈ 2px → stroke half-width each side.
+    static let haloLilacSpread: CGFloat = 2
+
+    /// CSS layer 2 peak α (white).
+    static let haloWhiteOpacity: Double = 0.28
+    /// CSS blur ≈ 10px.
+    static let haloWhiteBlur: CGFloat = 10
+    /// CSS spread ≈ 3px.
+    static let haloWhiteSpread: CGFloat = 3
+
+    /// Clip expanded bounds so halo does not smear into neighbor pads.
+    static let haloClipExpand: CGFloat = 8
 
     // MARK: Intensity / timing
 

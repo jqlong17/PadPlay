@@ -118,8 +118,8 @@ struct ForcePadCell: View {
     let onUp: () -> Void
 
     private var shortSide: CGFloat { min(padWidth, padHeight) }
-    /// Hard-edge rounded square — 8–12% of short side (mock).
-    private var corner: CGFloat { shortSide * 0.10 }
+    /// Hard-edge rounded rect — designer P1 lock 8.5% of short side.
+    private var corner: CGFloat { shortSide * PadTheme.padCornerFraction }
 
     /// 0…1 flash amount; held finger uses at least the held floor while down.
     private var t: CGFloat {
@@ -156,10 +156,32 @@ struct ForcePadCell: View {
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
+            let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+            let expand = PadHitLight.haloClipExpand
+
             ZStack {
-                // Recipe A+: outer #FFFFFF 3pt + inset white α0.55; fill slight lift only.
-                // Clipped inside pad — no outer bloom / shadowRadius.
-                let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+                // Recipe A++ soft outer perimeter halo (behind face).
+                // CSS: 0 0 6px 2px rgba(245,232,255,0.50) + 0 0 10px 3px rgba(255,255,255,0.28)
+                // Stroked rings + blur = glow around edge only (not filled pad bloom).
+                if t > PadHitLight.intensityEpsilon {
+                    shape
+                        .stroke(
+                            PadHitLight.haloLilac.opacity(PadHitLight.haloLilacOpacity * Double(t)),
+                            lineWidth: PadHitLight.haloLilacSpread * 2
+                        )
+                        .blur(radius: PadHitLight.haloLilacBlur)
+                        .allowsHitTesting(false)
+
+                    shape
+                        .stroke(
+                            Color.white.opacity(PadHitLight.haloWhiteOpacity * Double(t)),
+                            lineWidth: PadHitLight.haloWhiteSpread * 2
+                        )
+                        .blur(radius: PadHitLight.haloWhiteBlur)
+                        .allowsHitTesting(false)
+                }
+
+                // A+ face: outer #FFFFFF 3pt + inset white α0.55; fill slight lift only.
                 shape
                     .fill(faceFill)
                     .overlay(
@@ -178,6 +200,10 @@ struct ForcePadCell: View {
                 )
             }
             .frame(width: padWidth, height: padHeight)
+            // Allow halo into the gap, then clip so it does not smear onto neighbor faces.
+            .padding(expand)
+            .clipped()
+            .padding(-expand)
             .scaleEffect(isActive ? 0.97 : 1)
             // Decay is driven by published flash intensity (exp decay ticker) — no extra withAnimation.
             .animation(.easeOut(duration: 0.08), value: isActive)
@@ -222,7 +248,7 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
 }
 
 #if DEBUG
-/// Tiny harness: idle / peak / held flash intensities (rim-first).
+/// Tiny harness: idle / peak / held flash intensities (Recipe A++ rim + halo).
 #Preview("Pad hit light phases") {
     HStack(spacing: 16) {
         ForEach([(CGFloat(0), false, "idle"), (1.0, false, "peak"), (0.55, true, "held")], id: \.2) { flash, active, label in

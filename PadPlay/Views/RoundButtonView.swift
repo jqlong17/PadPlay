@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Recessed round control — white ring active state, no purple neon glow.
+/// Recessed round control — white ring active state, no purple neon glow, no fill-white face.
 struct RoundButtonView: View {
     let title: String?
     let systemImage: String?
@@ -10,6 +10,8 @@ struct RoundButtonView: View {
     /// Face diameter. Defaults keep prior compact/regular sizes.
     var diameter: CGFloat? = nil
     var compact: Bool = false
+    /// Optional caption under the icon (transport). Kept ≤10pt gray when used.
+    var caption: String? = nil
     let action: () -> Void
     var longPress: (() -> Void)? = nil
 
@@ -28,49 +30,56 @@ struct RoundButtonView: View {
     }
 
     var body: some View {
-        let ringColor: Color = {
-            if isActive {
-                if let accent, accent == PadTheme.accentRed { return PadTheme.accentRed.opacity(0.9) }
-                return Color.white.opacity(0.9)
-            }
-            return Color.white.opacity(0.28)
-        }()
+        let ringColor = isActive ? ChromeRing.activeColor : ChromeRing.idleColor
+        let ringWidth = isActive ? ChromeRing.activeWidth : ChromeRing.idleWidth
 
         Button(action: action) {
-            ZStack {
-                // Recessed mount
-                Circle()
-                    .fill(Color.black.opacity(0.5))
-                    .frame(width: size + 4, height: size + 4)
+            VStack(spacing: caption == nil ? 0 : 3) {
+                ZStack {
+                    // Recessed mount
+                    Circle()
+                        .fill(Color.black.opacity(0.5))
+                        .frame(width: size + 4, height: size + 4)
 
-                Circle()
-                    .fill(PadTheme.knobCap)
-                    .frame(width: size, height: size)
-                    .overlay(
-                        Circle()
-                            .stroke(ringColor, lineWidth: isActive ? 2.0 : 1.1)
-                    )
-                    .shadow(color: .black.opacity(0.35), radius: 1.5, y: 1)
-
-                if let systemImage {
-                    Image(systemName: systemImage)
-                        .font(.system(size: iconFont, weight: .semibold))
-                        .foregroundStyle(
-                            accent == PadTheme.accentRed && systemImage == "circle.fill"
-                            ? PadTheme.accentRed
-                            : Color.white
+                    // Face stays dark (knobCap) — never fill-white when selected.
+                    Circle()
+                        .fill(PadTheme.knobCap)
+                        .frame(width: size, height: size)
+                        .overlay(
+                            Circle()
+                                .stroke(ringColor, lineWidth: ringWidth)
                         )
-                } else if let title {
-                    Text(title)
-                        .font(.system(size: titleFont, weight: .bold, design: .rounded))
-                        .foregroundStyle(textColor)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.65)
-                        .padding(max(4, size * 0.08))
+                        .shadow(color: .black.opacity(0.35), radius: 1.5, y: 1)
+
+                    if let systemImage {
+                        Image(systemName: systemImage)
+                            .font(.system(size: iconFont, weight: .semibold))
+                            .foregroundStyle(
+                                accent == PadTheme.accentRed && systemImage == "circle.fill"
+                                ? PadTheme.accentRed
+                                : Color.white
+                            )
+                    } else if let title {
+                        Text(title)
+                            .font(.system(size: titleFont, weight: .bold, design: .rounded))
+                            .foregroundStyle(textColor)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.65)
+                            .padding(max(4, size * 0.08))
+                    }
+                }
+                .frame(width: size + 4, height: size + 4)
+
+                if let caption {
+                    Text(caption)
+                        .font(.system(size: ChromeRing.transportCaptionSize, weight: .medium, design: .rounded))
+                        .foregroundStyle(ChromeRing.transportCaptionColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(width: size + 8)
                 }
             }
-            .frame(width: size + 4, height: size + 4)
         }
         .buttonStyle(.plain)
         .simultaneousGesture(
@@ -83,6 +92,7 @@ struct RoundButtonView: View {
     }
 
     private var textColor: Color {
+        // 连击 / record keep red text accent; selection itself is white ring only.
         if let accent, accent == PadTheme.accentRed {
             return PadTheme.accentRed
         }

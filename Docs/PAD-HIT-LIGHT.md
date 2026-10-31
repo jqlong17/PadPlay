@@ -1,43 +1,57 @@
-# Pad 激发光效 v2.1（播放 / 循环 / 录制）
+# Pad 激发光效 v2.2（播放 / 循环 / 录制）
 
-> Recipe **A+** — 装机默认。原则：**边缘先亮**（rim-first），不是整块紫霓虹或近白闪屏。
+> 修订：2026-10-31 · 用户反馈「缺四周光环感」→ 在 Recipe A+ 描边之上加 **可控外环光晕**。  
+> 原则：rim + **四周 halo**；仍禁止脏大紫 bloom、整垫近白。
 
-目标：循环或播放时，图案里每个 note-on 让对应垫**边缘亮一下**；手指点垫同样。
+目标：note-on / 指点时垫像被点亮——边缘亮，且**四周有一圈柔光环**。
 
-## 触发源（同一套视觉）
-1. 手指按下垫
-2. 走带播放 / 循环时 sequencer 打到该垫
-3. 录制中手指按下（与 1 相同；录制中不要另起红色垫面）
+## 触发源（同一套）
+手指按下 · 播放/循环 note-on · 录制中按下。回放=指点。
 
-回放与指点**共用**同一 flash。
+---
 
-## 视觉重点：Recipe A+（rim + inset）
+## 装机默认：Recipe A++（A+ + soft halo）
 
-| 状态 | 垫面填色 | 边缘 | 说明 |
-|------|----------|------|------|
-| idle | `#CB85F3` | `#B15EEC`，**1.5pt** | 现基线，无外晕 |
-| hit peak | 微提 **`#D2A0F4`** | **外描边 `#FFFFFF`，3.0pt** + **inset 白环 α ≈ 0.55**（~1.75pt，~2pt inset，clip 在垫内） | 主体是 rim |
-| held（仅指尖按住） | `#D0A0F3` | 外边 ~2.5pt `#F5E8FF`；inset α ~0.35 | 松手 Decay |
-| playback note | 同 hit peak | 同 hit peak | **one-shot**：无 held，peak → Decay |
+| 层 | idle | hit peak |
+|----|------|----------|
+| 填色 | `#CB85F3` | `#D2A0F4`（微提） |
+| 外描边 | `#B15EEC` 1.5pt | `#FFFFFF` **3pt** |
+| 内环 | 无 | inset 白 α≈0.55 · ~1.75pt（裁在垫内） |
+| **四周光环** | 无 | **柔光外晕**：色 `#F5E8FF`～白，α 峰值 **0.45–0.55**，模糊半径约 **6–10pt**，扩散约 **2–4pt**；**贴垫四周一圈**，不要铺满缝到邻垫 |
 
-实现：每垫 flash 强度 **0…1**；retrigger → 1；`intensity *= exp(-dt * k)` 指数衰减。动画主驱动是 **stroke 线宽 + 颜色**。填色次要。
+### 光环怎么做（SwiftUI）
+- 用 `shadow` / 双层 overlay：**小半径、中等 α**，颜色偏白lilac，不是高饱和紫  
+- 或：垫外再叠一层略大的圆角矩形，stroke 白 α0.25 + blur 8，clip 到「垫外扩 8pt」区域，避免糊进邻垫  
+- **禁止**：blur ≥ 20、紫 `#CB85F3` 当 glow 色、整屏闪
 
-### 禁止
-- 垫外大面积紫外 bloom / 大半径外扩 `shadow`
-- 整垫近白 whiteout、整屏闪
-- 左栏旋钮/走带跟着闪
+### 时序（同前）
+Attack ~100ms → Decay ~250ms；边与光环同相；retrigger 打断。
 
-## 时序
-- Attack：0 → peak，**~100ms**（允许 90–120），easeOut（**边先到**）
-- Decay：peak → idle，**~250ms**（允许 220–300），easeOut
-- Held：仅手指按住维持 held；松手 Decay
-- Playback：每个 note-on 一次 Attack→Decay，无 held
-- 连击：retrigger — 打断 Decay，立刻再 Attack
+### 验收
+- Loop 时肉眼是「哪颗垫四周在亮一圈」，不只是细白线  
+- 邻垫不被光糊成一片  
+- 对照：`Docs/baseline-hit-rim.png`（halo 版）、`Docs/compare-rim-recipes.png`
 
-## 循环播放
-- 每个 note-on 闪边一次；停 / 停录立刻回 idle
+Recipe A+（仅描边无外晕）保留作退路；Recipe B 内 LED 仍为可选抛光。
 
-## 验收
-- 开 Loop：肉眼跟到的是**哪颗垫的边在跳**，不是整块变白
-- 指点与回放观感一致
-- 无垫外紫晕、无左栏误闪
+---
+
+## 装机映射（`PadHitLight` — 落在上表区间内）
+
+Peak CSS 参考（web baseline，与上表兼容）：
+
+```css
+box-shadow:
+  inset 0 0 0 1.75px rgba(255,255,255,0.55),
+  0 0 6px 2px rgba(245,232,255,0.50),
+  0 0 10px 3px rgba(255,255,255,0.28);
+```
+
+| Token | 值 | 对应 SoT |
+|-------|----|----------|
+| `haloLilac` / opacity | `#F5E8FF` α**0.50** | α 0.45–0.55 |
+| `haloLilacBlur` / spread | **6** / **2** | blur 6–10 · spread 2–4 |
+| `haloWhite` opacity / blur / spread | α**0.28** · **10** / **3** | `#F5E8FF`～白 第二层外晕 |
+| `haloClipExpand` | **8pt** | clip 垫外扩 8pt |
+
+同一 `flash` 强度驱动 rim + halo；双层 stroke+blur（贴边，非整垫 bloom）。
