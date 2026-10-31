@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// 4×4 pad stage — VISUAL-P0 face materials + vision A hard 4px corners (geometry lock).
+/// 4×4 pad stage — beauty v2 charcoal idle + wells; vision A hard 4px corners (geometry lock).
 /// Labels under each pad (never inside the face). Hit = Recipe A++ rim + soft outer halo.
 struct PadGridView: View {
     @EnvironmentObject private var controller: PadController
@@ -129,7 +129,7 @@ struct ForcePadCell: View {
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
 
-    /// Vision A / P0 hard 4px corner (geometry lock — not soft 8.5% continuous).
+    /// Vision A / beauty v2 hard 4px corner (geometry lock — not soft 8.5% continuous).
     private var corner: CGFloat { PadTheme.padCornerRadius }
 
     /// 0…1 flash amount; held finger uses at least the held floor while down.
@@ -144,7 +144,7 @@ struct ForcePadCell: View {
         isActive && flash <= PadHitLight.heldIntensity + 0.02
     }
 
-    /// Recipe A++ hit / held rim (layered on P0 groove — not a cheap white idle ring).
+    /// Recipe A++ hit / held rim (layered on beauty-v2 well — not a cheap white idle ring).
     private var rimColor: Color {
         if useHeldLook { return PadHitLight.heldStroke }
         return PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
@@ -161,10 +161,16 @@ struct ForcePadCell: View {
         return PadHitLight.innerHighlightOpacity * Double(t)
     }
 
-    /// Slight fill lift on strike — keeps P0 radial as the idle base.
+    /// Hit face lift opacity — charcoal → lilac/white (sheen fades under hit).
     private var hitLiftOpacity: Double {
-        if useHeldLook { return 0.08 }
-        return 0.14 * Double(t)
+        if useHeldLook { return 0.55 }
+        return 0.92 * Double(t)
+    }
+
+    /// Soft matte sheen fades when flashing (CSS `.pad.hit::before { opacity: 0.15 }`).
+    private var sheenOpacity: Double {
+        if t <= PadHitLight.intensityEpsilon { return 1.0 }
+        return 0.15 + 0.85 * (1.0 - Double(t))
     }
 
     var body: some View {
@@ -194,75 +200,115 @@ struct ForcePadCell: View {
                         .allowsHitTesting(false)
                 }
 
-                // VISUAL-P0 idle face + Recipe A++ hit overlays.
+                // Beauty v2 idle face + Recipe A++ hit overlays.
                 shape
-                    // 1. Radial #6D28D9 → #2E1065 (center expanded ~75%)
-                    .fill(
-                        RadialGradient(
-                            stops: [
-                                .init(color: Color(hex: 0x6D28D9), location: 0.0),
-                                .init(color: Color(hex: 0x5B21B6), location: 0.72),
-                                .init(color: Color(hex: 0x2E1065), location: 1.0),
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: maxDim * 0.65
+                    // 1. Charcoal base `#1C1C22`
+                    .fill(PadTheme.padFace)
+                    // 2. Soft matte purple halo ellipse @ ≈0.16 (NOT jelly radial candy)
+                    .overlay(
+                        shape.fill(
+                            RadialGradient(
+                                stops: [
+                                    .init(color: PadTheme.padHalo, location: 0.0),
+                                    .init(color: PadTheme.padHaloMid, location: 0.42),
+                                    .init(color: Color.clear, location: 0.72),
+                                ],
+                                center: UnitPoint(x: 0.5, y: 0.40),
+                                startRadius: 0,
+                                endRadius: maxDim * 0.55
+                            )
                         )
                     )
-                    // 2. Top sheen → bottom shade
+                    // 3. Soft matte top sheen → bottom shade
                     .overlay(
                         shape.fill(
                             LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.07),
-                                    Color.black.opacity(0.45),
+                                stops: [
+                                    .init(color: Color.white.opacity(0.055), location: 0.0),
+                                    .init(color: Color.white.opacity(0.01), location: 0.28),
+                                    .init(color: Color.black.opacity(0.35), location: 1.0),
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
+                        .opacity(sheenOpacity)
                     )
-                    // 3. Top bevel highlight
+                    // 4. Micro top rim highlight (white@0.04 / inset white@0.07)
                     .overlay(
                         shape
-                            .stroke(Color.white.opacity(0.22), lineWidth: 1.5)
-                            .offset(y: 1.0)
-                            .blur(radius: 0.5)
+                            .stroke(Color.white.opacity(0.07), lineWidth: 1.0)
+                            .offset(y: 0.5)
+                            .blur(radius: 0.3)
                             .mask(
                                 shape.fill(
                                     LinearGradient(
                                         colors: [.black, .clear],
                                         startPoint: .top,
-                                        endPoint: UnitPoint(x: 0.5, y: 0.28)
+                                        endPoint: UnitPoint(x: 0.5, y: 0.22)
                                     )
                                 )
                             )
                     )
-                    // 4. Bottom bevel shade
+                    // 5. Bottom inset shade
                     .overlay(
                         shape
-                            .stroke(Color.black.opacity(0.65), lineWidth: 3.0)
-                            .offset(y: -2.0)
-                            .blur(radius: 1.0)
+                            .stroke(Color.black.opacity(0.72), lineWidth: 3.0)
+                            .offset(y: -1.5)
+                            .blur(radius: 1.5)
                             .mask(
                                 shape.fill(
                                     LinearGradient(
                                         colors: [.black, .clear],
                                         startPoint: .bottom,
-                                        endPoint: UnitPoint(x: 0.5, y: 0.72)
+                                        endPoint: UnitPoint(x: 0.5, y: 0.68)
                                     )
                                 )
                             )
                     )
-                    // 5. Embedded groove — #09090B 1.5pt
+                    // 6. Thin face border `#0A0A0C`
                     .overlay(
-                        shape.strokeBorder(PadTheme.padGrooveStroke, lineWidth: 1.5)
+                        shape.strokeBorder(PadTheme.padBorder, lineWidth: 1.0)
                     )
-                    // 6. Recipe A++ fill lift (secondary)
+                    // 7. Well 镶嵌 — `0 0 0 1.5px #070709` + micro rim white@0.04
                     .overlay(
-                        shape.fill(Color.white.opacity(hitLiftOpacity))
+                        shape.strokeBorder(PadTheme.padWell, lineWidth: 1.5)
                     )
-                    // 7. Recipe A++ hit / held rim (on top of groove when flashing)
+                    .overlay(
+                        shape
+                            .stroke(Color.white.opacity(0.04), lineWidth: 1.0)
+                            .offset(y: 1.0)
+                            .mask(
+                                shape.fill(
+                                    LinearGradient(
+                                        colors: [.black, .clear],
+                                        startPoint: .top,
+                                        endPoint: UnitPoint(x: 0.5, y: 0.35)
+                                    )
+                                )
+                            )
+                    )
+                    // 8. Recipe A++ lilac/white face lift (charcoal → lilac peak)
+                    .overlay(
+                        Group {
+                            if t > PadHitLight.intensityEpsilon {
+                                shape.fill(
+                                    RadialGradient(
+                                        stops: [
+                                            .init(color: PadTheme.padHitRadialCenter, location: 0.0),
+                                            .init(color: PadTheme.padHitRadialMid, location: 0.45),
+                                            .init(color: PadTheme.padHitRadialEdge, location: 1.0),
+                                        ],
+                                        center: UnitPoint(x: 0.5, y: 0.42),
+                                        startRadius: 0,
+                                        endRadius: maxDim * 0.70
+                                    )
+                                )
+                                .opacity(hitLiftOpacity)
+                            }
+                        }
+                    )
+                    // 9. Recipe A++ hit / held rim (on top of well when flashing)
                     .overlay(
                         Group {
                             if t > PadHitLight.intensityEpsilon || isActive {
@@ -276,8 +322,8 @@ struct ForcePadCell: View {
                             .padding(PadHitLight.innerStrokeInset)
                     )
                     .clipShape(shape)
-                    // 8. Drop shadow — 0 6px 12px rgba(0,0,0,0.65)
-                    .shadow(color: Color.black.opacity(0.65), radius: 6, x: 0, y: 6)
+                    // 10. Compact drop — `0 2px 5px @0.55` (beauty v2; no heavy float)
+                    .shadow(color: Color.black.opacity(0.55), radius: 2.5, x: 0, y: 2)
 
                 ForceTouchPadRepresentable(
                     onDown: onDown,
@@ -292,17 +338,17 @@ struct ForcePadCell: View {
             .scaleEffect(isActive ? 0.97 : 1)
             .animation(.easeOut(duration: 0.08), value: isActive)
 
-            // Beginner drum name under the pad — CSS `#dcdce2` weight ~600.
+            // Silkscreen labels — `#8E8E98` / `#71717A`.
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .semibold, design: .rounded))
+                    .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .medium, design: .rounded))
                     .foregroundStyle(PadTheme.padLabel)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Spacer(minLength: 2)
                 Text(subtitle)
                     .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.45))
+                    .foregroundStyle(PadTheme.padLabelSub)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
@@ -332,7 +378,7 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
 }
 
 #if DEBUG
-/// Tiny harness: idle / peak / held flash intensities (Recipe A++ rim + halo).
+/// Tiny harness: idle / peak / held flash intensities (beauty v2 + Recipe A++).
 #Preview("Pad hit light phases") {
     HStack(spacing: 16) {
         ForEach([(CGFloat(0), false, "idle"), (1.0, false, "peak"), (0.55, true, "held")], id: \.2) { flash, active, label in

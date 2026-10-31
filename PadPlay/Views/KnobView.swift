@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// VISUAL-P0 knobs: dark track + purple value arc + gradient cap + angle pointer.
+/// Beauty v2 knobs: track groove `#0A0A0D` + quieter arc `#6D28D9` + tightened drop shadow.
 /// Layout token `--knob-d` 84 stays in `LeftChromeMetrics` (passed as `diameter`).
 /// Value 0…1 → pointer −150°…+150° (0° = 12 o'clock; 60° bottom gap for label).
+/// No purple outer bloom around the cap.
 struct KnobView: View {
     let index: Int
     @Binding var value: Float
@@ -38,7 +39,7 @@ struct KnobView: View {
     }
 
     private func knobColumn(outer: CGFloat) -> some View {
-        // Scale P0 insets from the 84pt reference so metrics.scale stays proportional.
+        // Scale insets from the 84pt reference so metrics.scale stays proportional.
         let trackInset = outer * (2.5 / 84.0)
         let capInset = outer * (9.0 / 84.0)
         let capSize = max(28, outer - capInset * 2)
@@ -48,44 +49,55 @@ struct KnobView: View {
 
         return VStack(spacing: 6) {
             ZStack {
-                // 1. Dark track — 300° arc, 60° bottom gap (no cheap white ring).
+                // 0. Track bottom groove well — `#0A0A0D` (Should from beauty v2).
+                Circle()
+                    .fill(PadTheme.knobTrackGroove)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.75), lineWidth: 1)
+                            .blur(radius: 0.5)
+                            .mask(Circle())
+                    )
+
+                // 1. Dark track — 300° arc, 60° bottom gap (idle ring faint).
                 Circle()
                     .trim(from: 0.0, to: 300.0 / 360.0)
                     .stroke(
-                        Color.white.opacity(0.07),
+                        Color.white.opacity(0.05),
                         style: StrokeStyle(lineWidth: trackWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(120))
                     .padding(trackInset)
 
-                // 2. Active purple value arc + glow.
+                // 2. Active purple value arc — quieter `#6D28D9`, NO outer bloom.
                 Circle()
                     .trim(from: 0.0, to: (300.0 / 360.0) * normalizedProgress)
                     .stroke(
-                        Color(hex: 0xA855F7),
+                        PadTheme.knobArc,
                         style: StrokeStyle(lineWidth: trackWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(120))
-                    .shadow(color: Color(hex: 0xA855F7, alpha: 0.50), radius: 4, x: 0, y: 0)
                     .padding(trackInset)
 
-                // 3. Gradient cap + drop shadow + hairline rim.
+                // 3. Gradient cap + tightened drop stack + hairline rim.
+                // CSS: 0 4px 8px @0.65 + 0 1px 2px @0.85; zero purple cap glow.
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color(hex: 0x323236), Color(hex: 0x18181B)],
+                            colors: [PadTheme.knobCapTop, PadTheme.knobCapBottom],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
                     .frame(width: capSize, height: capSize)
-                    .shadow(color: Color.black.opacity(0.85), radius: 7, x: 0, y: 8)
+                    .shadow(color: Color.black.opacity(0.85), radius: 1, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.65), radius: 4, x: 0, y: 4)
                     .overlay(
                         Circle()
                             .strokeBorder(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(0.18),
+                                        Color.white.opacity(0.12),
                                         Color.white.opacity(0.03),
                                     ],
                                     startPoint: .top,
@@ -94,12 +106,20 @@ struct KnobView: View {
                                 lineWidth: 0.5
                             )
                     )
+                    .overlay(
+                        // Cap inset dark — micro concave top edge.
+                        Circle()
+                            .stroke(Color.black.opacity(0.55), lineWidth: 2)
+                            .blur(radius: 1)
+                            .offset(y: 1)
+                            .mask(Circle())
+                    )
 
-                // 4. Real angle pointer — white + purple glow; 0° = 12 o'clock.
+                // 4. Quiet pointer — white@0.90 + soft lilac tick glow (not neon).
                 Capsule(style: .continuous)
-                    .fill(Color.white)
+                    .fill(Color.white.opacity(0.90))
                     .frame(width: pointerW, height: pointerH)
-                    .shadow(color: Color(hex: 0xC084FC), radius: 6, x: 0, y: 0)
+                    .shadow(color: Color(hex: 0x8F5BFF, alpha: 0.35), radius: 1.5, x: 0, y: 0)
                     .offset(y: -(capSize * 0.5 - max(8, outer * (10.0 / 84.0))))
                     .rotationEffect(.degrees(angleDegrees))
             }
@@ -116,7 +136,7 @@ struct KnobView: View {
             .accessibilityValue(Text("\(Int((Double(value) * 300 - 150).rounded()))°"))
 
             Text(title.isEmpty ? "\(index + 1)" : title)
-                .font(.system(size: max(11, min(13, outer * 0.155)), weight: .semibold, design: .rounded))
+                .font(.system(size: max(11, min(13, outer * 0.155)), weight: .medium, design: .rounded))
                 .foregroundStyle(PadTheme.chromeCaption)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -126,7 +146,7 @@ struct KnobView: View {
 }
 
 #if DEBUG
-#Preview("Knob P0 angles") {
+#Preview("Knob beauty v2 angles") {
     HStack(spacing: 24) {
         ForEach([(-40.0, "−40°"), (25.0, "+25°"), (-110.0, "−110°"), (95.0, "+95°")], id: \.1) { deg, label in
             VStack(spacing: 8) {

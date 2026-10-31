@@ -1,0 +1,192 @@
+/* ==========================================================================
+   patch-beauty-v2.css — PadPlay beauty pass (after beauty v1)
+   Source: beauty-second-opinion.md Must (+ easy Should)
+   Layout tokens UNTOUCHED. Linked AFTER patch-beauty-v1.css.
+   ========================================================================== */
+
+/* --- Should: chassis deeper #0E0E11 --- */
+.chassis {
+  background: linear-gradient(180deg, #121214 0%, #0E0E11 55%, #0A0A0C 100%);
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.55);
+}
+
+/* --- Must 1: Pad idle dormant — charcoal face + purple halo ≈0.16 --- */
+.pad {
+  /* Soft matte silicone: near-charcoal face; faint purple only (not jelly radial candy) */
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 50% 40%,
+      rgba(124, 58, 237, 0.16) 0%,
+      rgba(124, 58, 237, 0.08) 42%,
+      rgba(28, 28, 34, 0) 72%
+    ),
+    #1C1C22;
+  border: 1px solid #0A0A0C;
+  /* Must 2: Well 镶嵌 + soft top rim (Gemini: white@0.04 / inset white@0.07) */
+  box-shadow:
+    0 0 0 1.5px #070709,
+    0 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.72),
+    0 2px 5px rgba(0, 0, 0, 0.55);
+}
+
+/* Soft matte sheen — no bright jelly arc */
+.pad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.055) 0%,
+    rgba(255, 255, 255, 0.01) 28%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+  pointer-events: none;
+}
+
+/* Keep headroom: hit states still override bg via earlier rules; sheen fades */
+.pad.hit::before,
+.pad.hit-app::before {
+  opacity: 0.15;
+}
+
+/* Pad labels → silkscreen (Should) */
+.pad-label {
+  color: #8E8E98;
+  font-weight: 500;
+}
+.pad-label .sub {
+  color: #71717A;
+  font-weight: 400;
+}
+
+/* --- Must 3: Knob shadow tighten (labels readable) + quieter arc --- */
+.knob {
+  background:
+    /* Cap body */
+    radial-gradient(
+      circle closest-side,
+      transparent 31.5px,
+      rgba(255, 255, 255, 0.10) 32px,
+      #0A0A0D 32.5px,
+      #0A0A0D 38.5px,
+      transparent 39px
+    ),
+    linear-gradient(180deg, #2A2A2E 0%, #141416 100%) center / 64px 64px no-repeat,
+    /* Should: track bottom groove #0A0A0D */
+    radial-gradient(circle closest-side, #0A0A0D 0%, #0A0A0D 38.5px, transparent 39px),
+    conic-gradient(
+      from 210deg,
+      #6D28D9 0deg var(--knob-arc),
+      rgba(255, 255, 255, 0.05) var(--knob-arc) 300deg,
+      transparent 300deg 360deg
+    );
+  /* Compact drop stack — no purple outer bloom, no heavy mud eating labels */
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.75),
+    0 4px 8px rgba(0, 0, 0, 0.65),
+    0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.knob::before {
+  background: linear-gradient(180deg, #2A2A2E 0%, #141416 100%);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.12),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.78),
+    0 4px 8px rgba(0, 0, 0, 0.65),
+    0 1px 2px rgba(0, 0, 0, 0.85);
+  /* zero purple cap glow */
+}
+
+.knob::after {
+  /* quieter pointer — soft, not neon bloom */
+  box-shadow: 0 0 3px rgba(143, 91, 255, 0.35);
+  background: rgba(255, 255, 255, 0.90);
+}
+
+/* Should: silkscreen knob labels */
+.knob-label {
+  color: #8E8E98;
+  font-weight: 500;
+}
+
+/* --- Must 2 + Should: round-btn Well + micro-convex idle --- */
+.round-btn {
+  background: #18181D;
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  color: #8E8E98;
+  box-shadow:
+    0 0 0 1.5px #070709,
+    0 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.55),
+    0 2px 3px rgba(0, 0, 0, 0.6);
+}
+
+.round-btn .ico {
+  opacity: 0.5;
+}
+
+/* --- Must 4: Selected = inset light-guide #8F5BFF; outer fog = 0 --- */
+.round-btn.active {
+  background: #1A1A20;
+  border: 1px solid transparent;
+  color: #F2ECFF;
+  box-shadow:
+    0 0 0 1.5px #070709,
+    inset 0 0 0 1.5px #8F5BFF,
+    inset 0 0 10px rgba(143, 91, 255, 0.25);
+  /* NO outer purple bloom */
+}
+.round-btn.active .ico {
+  opacity: 0.95;
+}
+
+/* Danger idle — silkscreen-ish red (Gemini #D9534F quieter) */
+.round-btn.danger {
+  background: #18181D;
+  border: 1px solid rgba(217, 83, 79, 0.18);
+  color: rgba(217, 83, 79, 0.85);
+  text-shadow: none;
+  box-shadow:
+    0 0 0 1.5px #070709,
+    0 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.55),
+    0 2px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Danger active — inset guide, no outer fog */
+.round-btn.danger.active {
+  background: #1A1416;
+  border: 1px solid transparent;
+  color: #FECACA;
+  text-shadow: none;
+  box-shadow:
+    0 0 0 1.5px #070709,
+    inset 0 0 0 1.5px #D9534F,
+    inset 0 0 10px rgba(217, 83, 79, 0.28);
+}
+
+/* Should: brand / status silkscreen */
+.brand h1 {
+  color: #E4E4E7;
+}
+.brand .status {
+  color: #71717A;
+}
+
+.gear-tr,
+.right-top .gear-tr {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: #8E8E98;
+  box-shadow: 0 0 0 1.5px #070709;
+}
+.gear-tr svg,
+.right-top .gear-tr svg {
+  opacity: 0.65;
+}
