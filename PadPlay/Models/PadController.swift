@@ -14,7 +14,9 @@ final class PadController: ObservableObject {
     @Published var octaveShift: Int = 0 // -1...1 mapped to pitch
 
     @Published var knobs: [Float] = [0.85, 0.22, 0.85, 0.5] // vol, reverb, filter, pitch(0.5=0)
+    /// Finger currently down (held look).
     @Published var activePads: Set<Int> = []
+    /// Pads showing strike rim (finger flash and/or Play/Loop note-on).
     @Published var litPads: Set<Int> = []
     @Published var selectingRepeatParams = false
 
@@ -25,11 +27,20 @@ final class PadController: ObservableObject {
     private weak var engine: DrumEngine?
     private var repeatTimers: [Int: Timer] = [:]
     private var repeatCounters: [Int: Int] = [:]
+    private var flashDecayWork: [Int: DispatchWorkItem] = [:]
     private var cancellables = Set<AnyCancellable>()
 
     func bind(engine: DrumEngine) {
         self.engine = engine
         syncKnobsToEngine()
+
+        // Sequencer note-ons share the same rim flash as finger taps.
+        engine.onPadTriggered = { [weak self] padId in
+            self?.flashPad(id: padId)
+        }
+        engine.onTransportStopped = { [weak self] in
+            self?.clearPadFlashes()
+        }
 
         engine.$isPlaying
             .receive(on: RunLoop.main)
@@ -55,13 +66,73 @@ final class PadController: ObservableObject {
         }
     }
 
+    // MARK: - Shared hit light (finger + Play/Loop)
+
+    /// Brief rim flash for a pad id on the current grid. Used by Play/Loop note-ons
+    /// and other non-touch triggers. One-shot Attack→Decay (no held). Retrigger restarts Attack.
+    func flashPad(id: Int) {
+        cancelFlashDecay(id)
+        pulseLit(id)
+        // Playback: peak then Decay — never stays in held.
+        scheduleFlashDecay(id: id, after: PadHitLight.attackDuration)
+    }
+
+    /// Stop / stop-record: drop every strike flash back to idle.
+    func clearPadFlashes() {
+        for work in flashDecayWork.values { work.cancel() }
+        flashDecayWork.removeAll()
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) {
+            litPads.removeAll()
+        }
+    }
+
+    private func pulseLit(_ id: Int) {
+        // Snap off first so a rapid retrigger restarts Attack even if already lit.
+        if litPads.contains(id) {
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { litPads.remove(id) }
+        }
+        withAnimation(.easeOut(duration: PadHitLight.attackDuration)) {
+            litPads.insert(id)
+        }
+    }
+
+    private func cancelFlashDecay(_ id: Int) {
+        flashDecayWork[id]?.cancel()
+        flashDecayWork[id] = nil
+    }
+
+    private func scheduleFlashDecay(id: Int, after delay: TimeInterval) {
+        cancelFlashDecay(id)
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            // Finger still down → leave peak and settle to held (activePads only).
+            if self.activePads.contains(id) {
+                withAnimation(.easeOut(duration: PadHitLight.decayDuration * 0.5)) {
+                    self.litPads.remove(id)
+                }
+                self.flashDecayWork[id] = nil
+                return
+            }
+            withAnimation(.easeOut(duration: PadHitLight.decayDuration)) {
+                self.litPads.remove(id)
+            }
+            self.flashDecayWork[id] = nil
+        }
+        flashDecayWork[id] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
     // MARK: - Pads
 
     func padTouchDown(pad: PadInfo, force: CGFloat?) {
         // Beginner mode: pads always play drums (no hidden "param edit" pad mode).
         selectingRepeatParams = false
         let velocity = resolveVelocity(force: force)
-        hit(pad: pad, velocity: velocity)
+        hit(pad: pad, velocity: velocity, sustained: true)
 
         if noteRepeatOn {
             startNoteRepeat(pad: pad, velocity: velocity)
@@ -71,14 +142,20 @@ final class PadController: ObservableObject {
     func padTouchUp(pad: PadInfo) {
         activePads.remove(pad.id)
         stopNoteRepeat(padId: pad.id)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-            self?.litPads.remove(pad.id)
-        }
+        // Release → Decay (same path as playback flash end).
+        scheduleFlashDecay(id: pad.id, after: 0)
     }
 
-    private func hit(pad: PadInfo, velocity: Double) {
-        activePads.insert(pad.id)
-        litPads.insert(pad.id)
+    private func hit(pad: PadInfo, velocity: Double, sustained: Bool) {
+        if sustained {
+            activePads.insert(pad.id)
+            cancelFlashDecay(pad.id)
+            // Finger: Attack to hit peak, then settle to held while still down.
+            pulseLit(pad.id)
+            scheduleFlashDecay(id: pad.id, after: PadHitLight.attackDuration)
+        } else {
+            flashPad(id: pad.id)
+        }
         let pitch = Float(octaveShift * 12) + ((knobs[3] - 0.5) * 24)
         engine?.pitchSemitones = pitch
         engine?.triggerPad(padId: pad.id, sampleName: pad.sampleName, velocity: velocity, bank: padBank.rawValue)
@@ -114,7 +191,8 @@ final class PadController: ObservableObject {
         let timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.activePads.contains(pad.id), self.noteRepeatOn else { return }
-                self.hit(pad: pad, velocity: velocity * 0.92)
+                // Retrigger rim while finger stays held.
+                self.hit(pad: pad, velocity: velocity * 0.92, sustained: true)
                 self.repeatCounters[pad.id] = count + 1
                 self.scheduleNextRepeat(pad: pad, velocity: velocity)
             }
@@ -130,7 +208,7 @@ final class PadController: ObservableObject {
     }
 
     private func applyRepeatParam(from pad: PadInfo) {
-        litPads.insert(pad.id)
+        flashPad(id: pad.id)
         switch pad.id {
         case 1: noteRepeatDivision = .q4
         case 2: noteRepeatDivision = .q8
@@ -149,9 +227,6 @@ final class PadController: ObservableObject {
         case 15: octaveShift = max(-1, octaveShift - 1)
         case 16: octaveShift = min(1, octaveShift + 1)
         default: break
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.litPads.remove(pad.id)
         }
     }
 
@@ -201,9 +276,16 @@ final class PadController: ObservableObject {
         engine?.stopTransport()
         transportPlay = false
         transportRecord = false
+        clearPadFlashes()
     }
     func pressFastForward() { engine?.fastForward() }
-    func pressRecord() { engine?.toggleRecord() }
+    func pressRecord() {
+        engine?.toggleRecord()
+        // Stop-record → idle flashes (playback note-ons will re-flash if still playing).
+        if engine?.isRecording == false {
+            clearPadFlashes()
+        }
+    }
     func pressPlay() { engine?.togglePlay() }
     func pressLoop() { engine?.toggleLoop() }
 

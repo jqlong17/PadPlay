@@ -119,18 +119,71 @@ struct ForcePadCell: View {
     private var shortSide: CGFloat { min(padWidth, padHeight) }
     /// Hard-edge rounded square — 8–12% of short side (mock).
     private var corner: CGFloat { shortSide * 0.10 }
-    private var bright: Bool { isLit || isActive }
+
+    /// Strike phase for rim-first hit light (shared finger + Play/Loop).
+    /// lit → hit peak; active without lit → held; neither → idle.
+    private enum StrikePhase {
+        case idle, hit, held
+    }
+
+    private var phase: StrikePhase {
+        if isLit { return .hit }
+        if isActive { return .held }
+        return .idle
+    }
+
+    private var faceFill: Color {
+        switch phase {
+        case .idle: return PadHitLight.idleFill
+        case .hit: return PadHitLight.hitFill
+        case .held: return PadHitLight.heldFill
+        }
+    }
+
+    private var rimColor: Color {
+        switch phase {
+        case .idle: return PadHitLight.idleStroke
+        case .hit: return PadHitLight.hitStroke
+        case .held: return PadHitLight.heldStroke
+        }
+    }
+
+    private var rimWidth: CGFloat {
+        switch phase {
+        case .idle: return PadHitLight.idleStrokeWidth
+        case .hit: return PadHitLight.hitStrokeWidth
+        case .held: return PadHitLight.heldStrokeWidth
+        }
+    }
+
+    private var innerRimOpacity: Double {
+        switch phase {
+        case .idle: return 0
+        case .hit: return PadHitLight.innerHighlightOpacity
+        case .held: return PadHitLight.heldInnerHighlightOpacity
+        }
+    }
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             ZStack {
-                // Flat uniform fill; optional hairline edge — no silicone radial / sheen / glow.
-                RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .fill(bright ? PadTheme.padHit : PadTheme.padFill)
+                // Recipe A+: outer stroke (lineWidth+Color) + inset white ring, clipped inside pad.
+                // No outer bloom shadow. Fill nudge is secondary.
+                let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+                shape
+                    .fill(faceFill)
                     .overlay(
-                        RoundedRectangle(cornerRadius: corner, style: .continuous)
-                            .stroke(PadTheme.padEdge.opacity(bright ? 0.55 : 0.35), lineWidth: 1)
+                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
                     )
+                    .overlay(
+                        shape
+                            .strokeBorder(
+                                Color.white.opacity(innerRimOpacity),
+                                lineWidth: PadHitLight.innerStrokeWidth
+                            )
+                            .padding(PadHitLight.innerStrokeInset)
+                    )
+                    .clipShape(shape)
 
                 ForceTouchPadRepresentable(
                     onDown: onDown,
@@ -139,6 +192,7 @@ struct ForcePadCell: View {
             }
             .frame(width: padWidth, height: padHeight)
             .scaleEffect(isActive ? 0.97 : 1)
+            .animation(.easeOut(duration: isLit ? PadHitLight.attackDuration : PadHitLight.decayDuration), value: phase)
             .animation(.easeOut(duration: 0.08), value: isActive)
 
             // Beginner drum name under the pad (mock position) — never swing/octave pro copy.
@@ -179,6 +233,33 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
         uiView.onUp = onUp
     }
 }
+
+#if DEBUG
+/// Tiny harness: idle / hit / held rim phases side-by-side (provisional tokens).
+#Preview("Pad hit light phases") {
+    HStack(spacing: 16) {
+        ForEach([(false, false, "idle"), (true, false, "hit"), (true, true, "held")], id: \.2) { lit, active, label in
+            VStack(spacing: 8) {
+                ForcePadCell(
+                    pad: PadInfo(id: 1, sampleName: "kick", nameKey: "pad.kick", categoryKey: "cat.kick"),
+                    padWidth: 120,
+                    padHeight: 86,
+                    labelHeight: 16,
+                    title: label,
+                    subtitle: "rim",
+                    isLit: lit,
+                    isActive: active,
+                    onDown: { _ in },
+                    onUp: {}
+                )
+                Text(label).font(.caption).foregroundStyle(.white.opacity(0.7))
+            }
+        }
+    }
+    .padding(24)
+    .background(PadTheme.chassis)
+}
+#endif
 
 /// Transparent hit target — visual chrome lives in SwiftUI.
 final class PadTouchView: UIView {
