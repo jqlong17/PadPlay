@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Hardware-inspired left cluster: 4 knobs + 2×3 round buttons + 2×3 circular transport.
 /// Labels/capabilities are beginner-friendly (ZH default, EN via toggle).
+/// No purple neon on function / transport (TOKENS-from-mock).
 struct ControlClusterView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
@@ -18,47 +19,44 @@ struct ControlClusterView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Brand row — hardware faceplate, not an app header stack
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            // Brand — PadPlay + optional 中/EN; drop subtitle stack to match mock height.
+            HStack(alignment: .center, spacing: 6) {
                 Text("PadPlay")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundStyle(PadTheme.brand)
-                Text(settings.t("app.subtitle"))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(PadTheme.dimLabel)
                 Spacer(minLength: 4)
                 languageToggle
             }
 
-            // Compact status under brand (not a chip sidebar panel)
-            HStack(spacing: 8) {
+            // Quiet single-line status (no purple BPM card).
+            HStack(spacing: 6) {
                 Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(PadTheme.purpleGlow)
-                Text("·")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundStyle(PadTheme.dimLabel)
+                Text("·")
+                    .foregroundStyle(PadTheme.dimLabel.opacity(0.6))
                 Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(PadTheme.label)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(PadTheme.dimLabel)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
             }
 
             // 4 rotary knobs (2×2)
-            VStack(spacing: 6) {
-                HStack(spacing: 10) {
+            VStack(spacing: 4) {
+                HStack(spacing: 8) {
                     knob(2)
                     knob(3)
                 }
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     knob(0)
                     knob(1)
                 }
             }
             .padding(.top, 2)
 
-            // 2×3 function buttons
+            // 2×3 function buttons — face labels only; 连击 uses red ink when active.
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
                     funcBtn(settings.t("btn.kit")) { controller.pressPadBank() }
@@ -70,8 +68,7 @@ struct ControlClusterView: View {
                 HStack(spacing: 6) {
                     funcBtn(
                         settings.t("btn.tap"),
-                        accent: PadTheme.purpleGlow,
-                        active: true,
+                        active: false,
                         pulse: engine.tapFlash
                     ) {
                         controller.pressTapTempo()
@@ -89,7 +86,7 @@ struct ControlClusterView: View {
                 }
             }
 
-            // Circular transport as 2×3 (preview silhouette), not a single long toolbar
+            // Transport 2×3 — white icons / white active ring; record stays red.
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
                     transport(icon: "backward.end.fill", key: "tr.rewind") { controller.pressRewind() }
@@ -106,7 +103,6 @@ struct ControlClusterView: View {
                     transport(
                         icon: "play.fill",
                         key: "tr.play",
-                        accent: PadTheme.purpleGlow,
                         active: controller.transportPlay
                     ) { controller.pressPlay() }
                     transport(
@@ -133,12 +129,12 @@ struct ControlClusterView: View {
                     .foregroundStyle(settings.language == .zh ? Color.white : PadTheme.dimLabel)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)
-                    .background(settings.language == .zh ? PadTheme.purple : Color.clear)
+                    .background(settings.language == .zh ? Color.white.opacity(0.18) : Color.clear)
                 Text("EN")
                     .foregroundStyle(settings.language == .en ? Color.white : PadTheme.dimLabel)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)
-                    .background(settings.language == .en ? PadTheme.purple : Color.clear)
+                    .background(settings.language == .en ? Color.white.opacity(0.18) : Color.clear)
             }
             .font(.system(size: 10, weight: .bold, design: .rounded))
             .background(Capsule().fill(Color.white.opacity(0.08)))
@@ -184,21 +180,15 @@ struct ControlClusterView: View {
         active: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        VStack(spacing: 3) {
-            RoundButtonView(
-                title: nil,
-                systemImage: icon,
-                accent: accent,
-                isActive: active,
-                compact: true,
-                action: action
-            )
-            Text(settings.t(key))
-                .font(.system(size: 8, weight: .semibold, design: .rounded))
-                .foregroundStyle(PadTheme.dimLabel)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
+        RoundButtonView(
+            title: nil,
+            systemImage: icon,
+            accent: accent,
+            isActive: active,
+            compact: true,
+            action: action
+        )
+        .accessibilityLabel(settings.t(key))
         .frame(maxWidth: .infinity)
     }
 }
