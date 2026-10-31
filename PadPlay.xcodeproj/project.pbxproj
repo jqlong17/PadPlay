@@ -1,0 +1,423 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F0A25AA178C5451AB0B04435 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E66B0297AB40879A8D8B90 /* L10n.swift */; };
+		554283DD10294B63958C8C23 /* DrumEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E81AB7E69254232B9303B82 /* DrumEngine.swift */; };
+		83D4475049C7450DA1773AAD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81200887F70A4719AA6E9A5D /* ContentView.swift */; };
+		204BDBDE8A444689B6F1F847 /* PadController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26DD5D70D124B6AB1CAFDC0 /* PadController.swift */; };
+		B6656773DF4445A88054C382 /* PadDefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904855075B8D4B7A9B9A0D03 /* PadDefs.swift */; };
+		6AEB1EA97FD247F7B712BD62 /* PadPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA044F99FFA43349785135D /* PadPlayApp.swift */; };
+		2432164DB8614816A06B6824 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF660DEA6444B1C9FF9953F /* Theme.swift */; };
+		F2885A550A614E05A7336282 /* ControlClusterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECF67A7DA312459589E903A2 /* ControlClusterView.swift */; };
+		A28E5EE39FFE419EB48B8D4A /* KnobView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57843533498B4E3AA308283A /* KnobView.swift */; };
+		D7A506726D334694B4BEAD8E /* PadGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E17A78321A24D458B04A6C0 /* PadGridView.swift */; };
+		0E9F40E309934FEBBC62A7FE /* RoundButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */; };
+		BC9D3F57256A4C2883C05C46 /* clap.wav in Resources */ = {isa = PBXBuildFile; fileRef = E052BE73AA014EF0913E6B6D /* clap.wav */; };
+		9EC7708AB39C488EA0CAE6A5 /* closed_hat.wav in Resources */ = {isa = PBXBuildFile; fileRef = 356533F8E3404C299CE11BC5 /* closed_hat.wav */; };
+		AC8F66703F0E49A59DEC6197 /* cowbell.wav in Resources */ = {isa = PBXBuildFile; fileRef = AF4AF4E4945344A8A7C1F8C1 /* cowbell.wav */; };
+		957804FA3FD74DD38CC3A65D /* crash.wav in Resources */ = {isa = PBXBuildFile; fileRef = 649670EB39F9424C8F32EBA7 /* crash.wav */; };
+		4D7F91B271634512886E69C1 /* kick.wav in Resources */ = {isa = PBXBuildFile; fileRef = A7A40FD9FAB84EE4BF7686BD /* kick.wav */; };
+		1F21C9C958354C95B068075E /* kick_e.wav in Resources */ = {isa = PBXBuildFile; fileRef = C0D6AA2C39554EC2B5BFC6C0 /* kick_e.wav */; };
+		A14D683F0C3B405E899A30D4 /* open_hat.wav in Resources */ = {isa = PBXBuildFile; fileRef = 98B54E2718104E1398506E5C /* open_hat.wav */; };
+		A04E18BD1D634F499A1D39E6 /* perc1.wav in Resources */ = {isa = PBXBuildFile; fileRef = 7416E1A8AB9F420DB59DB83A /* perc1.wav */; };
+		7234CCBF3F85410DB1061123 /* perc2.wav in Resources */ = {isa = PBXBuildFile; fileRef = 701DF81F282F411C9974A20A /* perc2.wav */; };
+		BBAEA766346D49768F933FF3 /* ride.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8AA201871FAE472C8CD8C0D6 /* ride.wav */; };
+		98A92D7D9FD94E4C8AB44223 /* rim.wav in Resources */ = {isa = PBXBuildFile; fileRef = F40087B82A29411BAC396B5A /* rim.wav */; };
+		9D820237D2B04D8F98EAA4AA /* shaker.wav in Resources */ = {isa = PBXBuildFile; fileRef = 0A3251831318412AB3A5CCCF /* shaker.wav */; };
+		63B906BA9A3F41D8AA336D12 /* snap.wav in Resources */ = {isa = PBXBuildFile; fileRef = D15A0DB8904C42A58B1559BF /* snap.wav */; };
+		02044F08F6774D38B16D64B5 /* snare.wav in Resources */ = {isa = PBXBuildFile; fileRef = 853FB42DDBE6447CB7A3BBC4 /* snare.wav */; };
+		0F78BB249E3643C8B987A496 /* snare_e.wav in Resources */ = {isa = PBXBuildFile; fileRef = ED4BE26FCAAA479A916FEB42 /* snare_e.wav */; };
+		66E774B7B8B345CFB0AFF0FB /* tick.wav in Resources */ = {isa = PBXBuildFile; fileRef = 0FD76058F8F8479C82D71675 /* tick.wav */; };
+		5145AA039CB445B1B3CE6B6A /* tick_accent.wav in Resources */ = {isa = PBXBuildFile; fileRef = 77B3FDA8E98D41BF8BCF94DD /* tick_accent.wav */; };
+		C9436B9EA01049998C91B17D /* tom_high.wav in Resources */ = {isa = PBXBuildFile; fileRef = 164142FEA2744C1E835C1624 /* tom_high.wav */; };
+		B5C8E1AA6945419997F5A044 /* tom_low.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8CEE36BEA2D14D1AB679EBDF /* tom_low.wav */; };
+		B4ABD7C0FE124AD596FF7572 /* tom_mid.wav in Resources */ = {isa = PBXBuildFile; fileRef = 166B31A55C7C45BFADAD5242 /* tom_mid.wav */; };
+		E63C5C792C3945FB80B8498B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C44E2F5DED1543AAA0DA8A62 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		DD5438FFA944406E8C07DFEB /* PadPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PadPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E81AB7E69254232B9303B82 /* DrumEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrumEngine.swift; sourceTree = "<group>"; };
+		81200887F70A4719AA6E9A5D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E26DD5D70D124B6AB1CAFDC0 /* PadController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadController.swift; sourceTree = "<group>"; };
+		904855075B8D4B7A9B9A0D03 /* PadDefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadDefs.swift; sourceTree = "<group>"; };
+		19E66B0297AB40879A8D8B90 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		FAA044F99FFA43349785135D /* PadPlayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadPlayApp.swift; sourceTree = "<group>"; };
+		9AF660DEA6444B1C9FF9953F /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		ECF67A7DA312459589E903A2 /* ControlClusterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlClusterView.swift; sourceTree = "<group>"; };
+		57843533498B4E3AA308283A /* KnobView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnobView.swift; sourceTree = "<group>"; };
+		0E17A78321A24D458B04A6C0 /* PadGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadGridView.swift; sourceTree = "<group>"; };
+		2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundButtonView.swift; sourceTree = "<group>"; };
+		E052BE73AA014EF0913E6B6D /* clap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clap.wav; sourceTree = "<group>"; };
+		356533F8E3404C299CE11BC5 /* closed_hat.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = closed_hat.wav; sourceTree = "<group>"; };
+		AF4AF4E4945344A8A7C1F8C1 /* cowbell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = cowbell.wav; sourceTree = "<group>"; };
+		649670EB39F9424C8F32EBA7 /* crash.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = crash.wav; sourceTree = "<group>"; };
+		A7A40FD9FAB84EE4BF7686BD /* kick.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = kick.wav; sourceTree = "<group>"; };
+		C0D6AA2C39554EC2B5BFC6C0 /* kick_e.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = kick_e.wav; sourceTree = "<group>"; };
+		98B54E2718104E1398506E5C /* open_hat.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = open_hat.wav; sourceTree = "<group>"; };
+		7416E1A8AB9F420DB59DB83A /* perc1.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = perc1.wav; sourceTree = "<group>"; };
+		701DF81F282F411C9974A20A /* perc2.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = perc2.wav; sourceTree = "<group>"; };
+		8AA201871FAE472C8CD8C0D6 /* ride.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = ride.wav; sourceTree = "<group>"; };
+		F40087B82A29411BAC396B5A /* rim.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = rim.wav; sourceTree = "<group>"; };
+		0A3251831318412AB3A5CCCF /* shaker.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = shaker.wav; sourceTree = "<group>"; };
+		D15A0DB8904C42A58B1559BF /* snap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = snap.wav; sourceTree = "<group>"; };
+		853FB42DDBE6447CB7A3BBC4 /* snare.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = snare.wav; sourceTree = "<group>"; };
+		ED4BE26FCAAA479A916FEB42 /* snare_e.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = snare_e.wav; sourceTree = "<group>"; };
+		0FD76058F8F8479C82D71675 /* tick.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tick.wav; sourceTree = "<group>"; };
+		77B3FDA8E98D41BF8BCF94DD /* tick_accent.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tick_accent.wav; sourceTree = "<group>"; };
+		164142FEA2744C1E835C1624 /* tom_high.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tom_high.wav; sourceTree = "<group>"; };
+		8CEE36BEA2D14D1AB679EBDF /* tom_low.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tom_low.wav; sourceTree = "<group>"; };
+		166B31A55C7C45BFADAD5242 /* tom_mid.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tom_mid.wav; sourceTree = "<group>"; };
+		C44E2F5DED1543AAA0DA8A62 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		288AEA967A4543548F951635 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9BECE12DE68F4F88BC29B8E2 = {
+			isa = PBXGroup;
+			children = (
+				1D0EB37C0D4B48AD99CE3F91 /* PadPlay */,
+				8C195922AEE845C6A8E9FCFA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8C195922AEE845C6A8E9FCFA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DD5438FFA944406E8C07DFEB /* PadPlay.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1D0EB37C0D4B48AD99CE3F91 /* PadPlay */ = {
+			isa = PBXGroup;
+			children = (
+				81200887F70A4719AA6E9A5D /* ContentView.swift */,
+				FAA044F99FFA43349785135D /* PadPlayApp.swift */,
+				9AF660DEA6444B1C9FF9953F /* Theme.swift */,
+				F61366DA49DA4EF0A50ED81B /* Audio */,
+				117EEEA75E9A4B3981165228 /* Models */,
+				94FF3D128C4A4EF8A2FC7821 /* Views */,
+				66C000F18ADB44298E034AFF /* Resources */,
+				C44E2F5DED1543AAA0DA8A62 /* Assets.xcassets */,
+			);
+			path = PadPlay;
+			sourceTree = "<group>";
+		};
+		F61366DA49DA4EF0A50ED81B /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				9E81AB7E69254232B9303B82 /* DrumEngine.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		117EEEA75E9A4B3981165228 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				E26DD5D70D124B6AB1CAFDC0 /* PadController.swift */,
+				904855075B8D4B7A9B9A0D03 /* PadDefs.swift */,
+				19E66B0297AB40879A8D8B90 /* L10n.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		94FF3D128C4A4EF8A2FC7821 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				ECF67A7DA312459589E903A2 /* ControlClusterView.swift */,
+				57843533498B4E3AA308283A /* KnobView.swift */,
+				0E17A78321A24D458B04A6C0 /* PadGridView.swift */,
+				2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		66C000F18ADB44298E034AFF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				59D141DD5C59458198C56D20 /* Samples */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		59D141DD5C59458198C56D20 /* Samples */ = {
+			isa = PBXGroup;
+			children = (
+				E052BE73AA014EF0913E6B6D /* clap.wav */,
+				356533F8E3404C299CE11BC5 /* closed_hat.wav */,
+				AF4AF4E4945344A8A7C1F8C1 /* cowbell.wav */,
+				649670EB39F9424C8F32EBA7 /* crash.wav */,
+				A7A40FD9FAB84EE4BF7686BD /* kick.wav */,
+				C0D6AA2C39554EC2B5BFC6C0 /* kick_e.wav */,
+				98B54E2718104E1398506E5C /* open_hat.wav */,
+				7416E1A8AB9F420DB59DB83A /* perc1.wav */,
+				701DF81F282F411C9974A20A /* perc2.wav */,
+				8AA201871FAE472C8CD8C0D6 /* ride.wav */,
+				F40087B82A29411BAC396B5A /* rim.wav */,
+				0A3251831318412AB3A5CCCF /* shaker.wav */,
+				D15A0DB8904C42A58B1559BF /* snap.wav */,
+				853FB42DDBE6447CB7A3BBC4 /* snare.wav */,
+				ED4BE26FCAAA479A916FEB42 /* snare_e.wav */,
+				0FD76058F8F8479C82D71675 /* tick.wav */,
+				77B3FDA8E98D41BF8BCF94DD /* tick_accent.wav */,
+				164142FEA2744C1E835C1624 /* tom_high.wav */,
+				8CEE36BEA2D14D1AB679EBDF /* tom_low.wav */,
+				166B31A55C7C45BFADAD5242 /* tom_mid.wav */,
+			);
+			path = Samples;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E5DF91ED416145F7AEBEEFBC /* PadPlay */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6D5969E28CF24D5BA056F264 /* Build configuration list for PBXNativeTarget "PadPlay" */;
+			buildPhases = (
+				09711609FFA84B79BFFB8C99 /* Sources */,
+				288AEA967A4543548F951635 /* Frameworks */,
+				D1F2BF46250245818208B534 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PadPlay;
+			productName = PadPlay;
+			productReference = DD5438FFA944406E8C07DFEB /* PadPlay.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		774567F6A403432DBA3745D9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					E5DF91ED416145F7AEBEEFBC = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 5DF1D8788BF941448C7D65C0 /* Build configuration list for PBXProject "PadPlay" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				zh-Hans,
+			);
+			mainGroup = 9BECE12DE68F4F88BC29B8E2;
+			productRefGroup = 8C195922AEE845C6A8E9FCFA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E5DF91ED416145F7AEBEEFBC /* PadPlay */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D1F2BF46250245818208B534 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E63C5C792C3945FB80B8498B /* Assets.xcassets in Resources */,
+				BC9D3F57256A4C2883C05C46 /* clap.wav in Resources */,
+				9EC7708AB39C488EA0CAE6A5 /* closed_hat.wav in Resources */,
+				AC8F66703F0E49A59DEC6197 /* cowbell.wav in Resources */,
+				957804FA3FD74DD38CC3A65D /* crash.wav in Resources */,
+				4D7F91B271634512886E69C1 /* kick.wav in Resources */,
+				1F21C9C958354C95B068075E /* kick_e.wav in Resources */,
+				A14D683F0C3B405E899A30D4 /* open_hat.wav in Resources */,
+				A04E18BD1D634F499A1D39E6 /* perc1.wav in Resources */,
+				7234CCBF3F85410DB1061123 /* perc2.wav in Resources */,
+				BBAEA766346D49768F933FF3 /* ride.wav in Resources */,
+				98A92D7D9FD94E4C8AB44223 /* rim.wav in Resources */,
+				9D820237D2B04D8F98EAA4AA /* shaker.wav in Resources */,
+				63B906BA9A3F41D8AA336D12 /* snap.wav in Resources */,
+				02044F08F6774D38B16D64B5 /* snare.wav in Resources */,
+				0F78BB249E3643C8B987A496 /* snare_e.wav in Resources */,
+				66E774B7B8B345CFB0AFF0FB /* tick.wav in Resources */,
+				5145AA039CB445B1B3CE6B6A /* tick_accent.wav in Resources */,
+				C9436B9EA01049998C91B17D /* tom_high.wav in Resources */,
+				B5C8E1AA6945419997F5A044 /* tom_low.wav in Resources */,
+				B4ABD7C0FE124AD596FF7572 /* tom_mid.wav in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		09711609FFA84B79BFFB8C99 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				554283DD10294B63958C8C23 /* DrumEngine.swift in Sources */,
+				83D4475049C7450DA1773AAD /* ContentView.swift in Sources */,
+				204BDBDE8A444689B6F1F847 /* PadController.swift in Sources */,
+				B6656773DF4445A88054C382 /* PadDefs.swift in Sources */,
+				F0A25AA178C5451AB0B04435 /* L10n.swift in Sources */,
+				6AEB1EA97FD247F7B712BD62 /* PadPlayApp.swift in Sources */,
+				2432164DB8614816A06B6824 /* Theme.swift in Sources */,
+				F2885A550A614E05A7336282 /* ControlClusterView.swift in Sources */,
+				A28E5EE39FFE419EB48B8D4A /* KnobView.swift in Sources */,
+				D7A506726D334694B4BEAD8E /* PadGridView.swift in Sources */,
+				0E9F40E309934FEBBC62A7FE /* RoundButtonView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		85E61C4C6304458B9CF67AD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		EBDAF71173084553BCED552E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		6D499309278E4887BC17065B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PadPlay;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.padplay.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C6C7C170A00849888CDA6255 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PadPlay;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.padplay.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5DF1D8788BF941448C7D65C0 /* Build configuration list for PBXProject "PadPlay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				85E61C4C6304458B9CF67AD4 /* Debug */,
+				EBDAF71173084553BCED552E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6D5969E28CF24D5BA056F264 /* Build configuration list for PBXNativeTarget "PadPlay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6D499309278E4887BC17065B /* Debug */,
+				C6C7C170A00849888CDA6255 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 774567F6A403432DBA3745D9 /* Project object */;
+}
