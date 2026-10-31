@@ -209,41 +209,63 @@ struct ForcePadCell: View {
     }
 
     /// Recipe A++ soft outer perimeter halo (behind face).
-    /// Path is expanded outside the face so the bloom reads in the gutter;
-    /// face drop shadow fades with `t` (CSS hit replaces idle shadow with halo).
+    /// Soft fill ring + lilac/white strokes on an expanded path so the gutter
+    /// bloom reaches mock luminance; face drop shadow fades with `t`.
     @ViewBuilder
     private var outerHitHalo: some View {
         if isFlashing {
             let expand = PadHitLight.haloPathExpand
-            let haloShape = RoundedRectangle(
+            let ring = PadHitLight.haloRingWidth
+            // Annulus outer edge = path expand + half ring, so the band sits in the gutter.
+            let ringOuter = expand + ring * 0.5
+            let strokeShape = RoundedRectangle(
                 cornerRadius: corner + expand,
                 style: .continuous
             )
+            let strokeW = padWidth + expand * 2
+            let strokeH = padHeight + expand * 2
 
-            haloShape
+            // Primary luminance: lilac annulus in the gutter (not a full-pad bloom).
+            softHaloFillRing(ringOuter: ringOuter)
+
+            strokeShape
                 .stroke(
                     PadHitLight.haloLilac.opacity(PadHitLight.haloLilacOpacity * Double(t)),
                     lineWidth: PadHitLight.haloLilacSpread * 2
                 )
-                .frame(
-                    width: padWidth + expand * 2,
-                    height: padHeight + expand * 2
-                )
+                .frame(width: strokeW, height: strokeH)
                 .blur(radius: PadHitLight.haloLilacBlur)
                 .allowsHitTesting(false)
 
-            haloShape
+            strokeShape
                 .stroke(
                     Color.white.opacity(PadHitLight.haloWhiteOpacity * Double(t)),
                     lineWidth: PadHitLight.haloWhiteSpread * 2
                 )
-                .frame(
-                    width: padWidth + expand * 2,
-                    height: padHeight + expand * 2
-                )
+                .frame(width: strokeW, height: strokeH)
                 .blur(radius: PadHitLight.haloWhiteBlur)
                 .allowsHitTesting(false)
         }
+    }
+
+    /// Lilac soft fill ring punched out over the pad face, then blurred.
+    /// Outer edge at `ringOuter`; hole matches the face so only the perimeter band glows.
+    private func softHaloFillRing(ringOuter: CGFloat) -> some View {
+        let outerW = padWidth + ringOuter * 2
+        let outerH = padHeight + ringOuter * 2
+        let outerCorner = corner + ringOuter
+
+        return ZStack {
+            RoundedRectangle(cornerRadius: outerCorner, style: .continuous)
+                .fill(PadHitLight.haloLilac.opacity(PadHitLight.haloRingOpacity * Double(t)))
+            RoundedRectangle(cornerRadius: corner, style: .continuous)
+                .frame(width: padWidth, height: padHeight)
+                .blendMode(.destinationOut)
+        }
+        .compositingGroup()
+        .frame(width: outerW, height: outerH)
+        .blur(radius: PadHitLight.haloRingBlur)
+        .allowsHitTesting(false)
     }
 
     /// Beauty v2 idle materials + Recipe A++ hit overlays (same look as before; layered helpers).
