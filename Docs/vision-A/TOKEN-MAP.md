@@ -30,3 +30,7 @@ Source: `patch-vision-A.css` + `patch-vision-C.txt`. App Icon unchanged. PadHitL
 ## Calibration mode (debug)
 
 Settings → **矫正模式 / Calibration mode** (default OFF, persisted). When ON, the main stage is a wireframe HUD only (rects, crosses, ids, gap labels) covering left chrome (knobs / btn / transport), gear, and pads 1–16. **复制布局报告** pastes QA schema `PadPlay layout report v0` (frames in pt relative to **chassis root**; `screenSize` = chassis box so gear right gutter = `screenWidth − gear.maxX` ≈ 18; token + measured−token deltas for left-w / cluster / knob⌀ / btn⌀ / gear⌀ / sectionGap / knobCol / knobRow / btnCol; padGapH/V measured only — **padGapV = face-to-face row gutter from pad frames**, not VStack `vGap`; align line reports knob1.y vs pad13.y vs sharedFaceTop104). App Icon and Recipe A++ hit path unchanged when mode is OFF.
+
+## VISUAL-P0 materials (2026-10-31)
+
+Geometry tokens above stay locked. Face materials only: pad radial `#6D28D9→#2E1065` + bevel/groove/shadow; knob dark track + purple arc + gradient cap + pointer (−150…+150); round-btn idle well / purple LED / 连击 red LED. Recipe A++ hit flash layers on the new pad surface. Spec: `Docs/VISUAL-P0-swiftui.md`.

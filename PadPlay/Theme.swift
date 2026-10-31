@@ -1,38 +1,58 @@
 import SwiftUI
 import UIKit
 
-/// Visual tokens locked from preview mock + vision patch A CSS (`patch-vision-A.css`).
-/// Source of truth is the designer web baseline — not the App Icon column gradient.
+extension Color {
+    /// Designer hex helper — VISUAL-P0 / vision tokens (`#RRGGBB`).
+    init(hex: UInt, alpha: Double = 1.0) {
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255.0,
+            green: Double((hex >> 8) & 0xFF) / 255.0,
+            blue: Double(hex & 0xFF) / 255.0,
+            opacity: alpha
+        )
+    }
+}
+
+/// Visual tokens — layout geometry locked (PR#10 / feel v1); face materials from VISUAL-P0.
+/// Source of truth for chrome materials is designer VISUAL-P0 — not the App Icon column gradient.
 enum PadTheme {
     // Chassis
-    static let chassis = Color(red: 31 / 255, green: 31 / 255, blue: 33 / 255) // #1F1F21
+    static let chassis = Color(hex: 0x1F1F21)
     static let chassisEdge = Color(red: 0.16, green: 0.15, blue: 0.17)
-    static let chassisWell = Color(red: 28 / 255, green: 28 / 255, blue: 30 / 255) // #1C1C1E gap
+    static let chassisWell = Color(hex: 0x1C1C1E)
     static let metal = Color(red: 0.22, green: 0.21, blue: 0.24)
     static let metalHighlight = Color(red: 0.38, green: 0.37, blue: 0.40)
 
     static let label = Color.white
     static let dimLabel = Color.white.opacity(0.55)
     /// Knob / pad caption — CSS `#e0e0e5` / `#dcdce2`.
-    static let chromeCaption = Color(red: 224 / 255, green: 224 / 255, blue: 229 / 255)
-    static let padLabel = Color(red: 220 / 255, green: 220 / 255, blue: 226 / 255) // #dcdce2
+    static let chromeCaption = Color(hex: 0xE0E0E5)
+    static let padLabel = Color(hex: 0xDCDCE2)
 
-    /// Uniform pad face base — #CB85F3 (NOT left→right columns). Idle face uses radial backlight.
-    static let padFill = Color(red: 203 / 255, green: 133 / 255, blue: 243 / 255)
-    /// Vision A idle edge — #9B3FE0.
-    static let padEdge = Color(red: 155 / 255, green: 63 / 255, blue: 224 / 255)
+    // MARK: VISUAL-P0 pad face (idle materials only — hit flash stays Recipe A++)
+
+    /// Pad radial center — P0 `#6D28D9` (expanded ~75%).
+    static let padCenter = Color(hex: 0x6D28D9)
+    /// Pad radial mid stop — `#5B21B6`.
+    static let padRadialMid = Color(hex: 0x5B21B6)
+    /// Pad radial edge — P0 `#2E1065`.
+    static let padEdge = Color(hex: 0x2E1065)
+    /// Embedded groove stroke — P0 `#09090B` 1.5pt.
+    static let padGrooveStroke = Color(hex: 0x09090B)
+    /// Legacy fill alias ≈ center (NOT left→right columns).
+    static let padFill = padCenter
     /// Legacy alias — hit look is rim-first via `PadHitLight`.
-    static let padHit = Color(red: 210 / 255, green: 160 / 255, blue: 244 / 255)
+    static let padHit = Color(hex: 0xD2A0F4)
 
-    // Idle radial backlight — CSS `radial-gradient(circle at 50% 52%, #e5aaff, #b24bf7, #8d27d9)`
-    static let padRadialCenter = Color(red: 229 / 255, green: 170 / 255, blue: 255 / 255)
-    static let padRadialMid = Color(red: 178 / 255, green: 75 / 255, blue: 247 / 255)
-    static let padRadialEdge = Color(red: 141 / 255, green: 39 / 255, blue: 217 / 255)
+    // Idle radial — P0 `#6D28D9 → #5B21B6 → #2E1065`
+    static let padRadialCenter = padCenter
+    static let padRadialEdge = padEdge
 
-    // Hit radial lift — CSS `#f0d0ff → #c56af8 → #a03ae8`
-    static let padHitRadialCenter = Color(red: 240 / 255, green: 208 / 255, blue: 255 / 255)
-    static let padHitRadialMid = Color(red: 197 / 255, green: 106 / 255, blue: 248 / 255)
-    static let padHitRadialEdge = Color(red: 160 / 255, green: 58 / 255, blue: 232 / 255)
+    // Hit radial lift (Recipe A++ fill nudge layered on P0 face)
+    static let padHitRadialCenter = Color(hex: 0xF0D0FF)
+    static let padHitRadialMid = Color(hex: 0xC56AF8)
+    static let padHitRadialEdge = Color(hex: 0xA03AE8)
 
     // Legacy aliases used by leftover chrome; keep non-neon.
     static let purple = padFill
@@ -41,32 +61,31 @@ enum PadTheme {
     static let purpleEdge = padEdge
     static let purpleHit = padHit
 
-    static let accentRed = Color(red: 1.0, green: 59 / 255, blue: 48 / 255) // ~#FF3B30
-    static let knobCap = Color(red: 0.11, green: 0.10, blue: 0.12)
+    /// Roll / record accent — VISUAL-P0 / mock `#EF4444` (idle glyph; active uses LED cavity).
+    static let accentRed = Color(hex: 0xEF4444)
+    static let knobCap = Color(hex: 0x18181B)
     static let brand = Color.white.opacity(0.95)
 
     /// Pad face width ÷ height from mock (~191×138).
     static let padAspect: CGFloat = 1.384
 
-    /// Vision A hard hardware corner — CSS `border-radius: 4px` (was 8.5% soft).
+    /// Vision A hard hardware corner — CSS `border-radius: 4px` (geometry lock — do not change).
     static let padCornerRadius: CGFloat = 4
 
-    /// Recessed ring / chrome face colors (vision A inset shadows).
-    static let recessDark = Color(red: 15 / 255, green: 15 / 255, blue: 18 / 255) // #0f0f12
-    static let recessButtonDark = Color(red: 14 / 255, green: 14 / 255, blue: 17 / 255) // #0e0e11
-    static let roundButtonFace = Color(red: 28 / 255, green: 28 / 255, blue: 32 / 255) // #1c1c20
-    static let roundButtonFaceActive = Color(red: 40 / 255, green: 40 / 255, blue: 46 / 255) // #28282e
-    static let roundButtonIdleRing = Color(red: 69 / 255, green: 69 / 255, blue: 74 / 255) // #45454a
+    /// Recessed ring / chrome face colors (legacy vision A — RoundButton uses P0 LED cavity).
+    static let recessDark = Color(hex: 0x0F0F12)
+    static let recessButtonDark = Color(hex: 0x0E0E11)
+    static let roundButtonFace = Color(hex: 0x161618) // P0 btnIdleBg
+    static let roundButtonFaceActive = Color(hex: 0x28282E)
+    static let roundButtonIdleRing = Color.white.opacity(0.06) // P0 btnIdleStroke
 }
 
-/// Left-chrome selected / idle ring — white stroke only when active, no fill-white face.
+/// Transport caption tokens (LED cavity for buttons lives in RoundButtonView / VISUAL-P0).
 enum ChromeRing {
-    /// CSS round-btn border 1.5px.
-    static let idleWidth: CGFloat = 1.5
-    /// Selected keeps same stroke weight — brighter white ring only.
+    static let idleWidth: CGFloat = 1.0
     static let activeWidth: CGFloat = 1.5
     static let idleColor = PadTheme.roundButtonIdleRing
-    static let activeColor = Color.white.opacity(0.75)
+    static let activeColor = Color(hex: 0xC084FC)
     /// Transport caption under icon, if ever shown (≤10pt gray).
     static let transportCaptionSize: CGFloat = 10
     static let transportCaptionColor = Color.white.opacity(0.45)
@@ -134,27 +153,27 @@ struct LeftChromeMetrics {
 }
 
 /// Pad strike rim flash — PAD-HIT-LIGHT **v2.2 Recipe A++** (install default).
-/// A+ rim + inset, plus soft outer perimeter halo (CSS box-shadow parity).
+/// Layers on VISUAL-P0 pad face (radial + bevel + groove). A+ rim + inset + soft outer halo.
 /// Eye cue is bright rim + tight halo; fill only a slight lift.
 /// Animate via published flash intensity 0…1 (exponential decay). Easy to retune here.
 enum PadHitLight {
-    // MARK: Fill (secondary — slight lift only; face uses radial backlight in PadGridView)
+    // MARK: Fill (secondary — slight lift only; idle face is VISUAL-P0 radial in PadGridView)
 
-    /// Idle — #CB85F3.
+    /// Idle — P0 pad center.
     static let idleFill = PadTheme.padFill
     /// Hit peak fill nudge — #D2A0F4.
-    static let hitFill = Color(red: 210 / 255, green: 160 / 255, blue: 244 / 255)
+    static let hitFill = Color(hex: 0xD2A0F4)
     /// Held fill (finger only) — #D0A0F3.
-    static let heldFill = Color(red: 208 / 255, green: 160 / 255, blue: 243 / 255)
+    static let heldFill = Color(hex: 0xD0A0F3)
 
-    // MARK: Stroke / rim (primary) — Recipe A+
+    // MARK: Stroke / rim (primary) — Recipe A+ on top of P0 groove
 
-    /// Idle thin stroke — vision A `#9B3FE0` via `PadTheme.padEdge`.
-    static let idleStroke = PadTheme.padEdge
+    /// Idle groove / thin stroke — P0 `#09090B` (face always draws groove; flash mixes toward white).
+    static let idleStroke = PadTheme.padGrooveStroke
     /// Hit peak outer stroke — pure #FFFFFF 3.0pt.
     static let hitStroke = Color.white
     /// Held outer stroke — #F5E8FF ~2.5pt.
-    static let heldStroke = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255)
+    static let heldStroke = Color(hex: 0xF5E8FF)
 
     static let idleStrokeWidth: CGFloat = 1.5
     static let hitStrokeWidth: CGFloat = 3.0
@@ -176,7 +195,7 @@ enum PadHitLight {
     // Drawn as stroked rings + blur (perimeter only — not a filled pad bloom).
 
     /// Lilac halo — #F5E8FF.
-    static let haloLilac = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255)
+    static let haloLilac = Color(hex: 0xF5E8FF)
     /// CSS layer 1 peak α.
     static let haloLilacOpacity: Double = 0.50
     /// CSS blur ≈ 6px.

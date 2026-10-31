@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// 4×4 pad stage — vision A hard 4px corners + radial backlight face.
+/// 4×4 pad stage — VISUAL-P0 face materials + vision A hard 4px corners (geometry lock).
 /// Labels under each pad (never inside the face). Hit = Recipe A++ rim + soft outer halo.
 struct PadGridView: View {
     @EnvironmentObject private var controller: PadController
@@ -129,7 +129,7 @@ struct ForcePadCell: View {
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
 
-    /// Vision A hard 4px corner (not soft 8.5% continuous).
+    /// Vision A / P0 hard 4px corner (geometry lock — not soft 8.5% continuous).
     private var corner: CGFloat { PadTheme.padCornerRadius }
 
     /// 0…1 flash amount; held finger uses at least the held floor while down.
@@ -144,28 +144,7 @@ struct ForcePadCell: View {
         isActive && flash <= PadHitLight.heldIntensity + 0.02
     }
 
-    private var faceFill: RadialGradient {
-        let center: Color
-        let mid: Color
-        let edge: Color
-        if useHeldLook {
-            center = PadHitLight.mix(PadTheme.padRadialCenter, PadTheme.padHitRadialCenter, PadHitLight.heldIntensity)
-            mid = PadHitLight.mix(PadTheme.padRadialMid, PadTheme.padHitRadialMid, PadHitLight.heldIntensity)
-            edge = PadHitLight.mix(PadTheme.padRadialEdge, PadTheme.padHitRadialEdge, PadHitLight.heldIntensity)
-        } else {
-            center = PadHitLight.mix(PadTheme.padRadialCenter, PadTheme.padHitRadialCenter, t)
-            mid = PadHitLight.mix(PadTheme.padRadialMid, PadTheme.padHitRadialMid, t)
-            edge = PadHitLight.mix(PadTheme.padRadialEdge, PadTheme.padHitRadialEdge, t)
-        }
-        let y: CGFloat = useHeldLook || t > 0.2 ? 0.48 : 0.52
-        return RadialGradient(
-            colors: [center, mid, edge],
-            center: UnitPoint(x: 0.5, y: y),
-            startRadius: 0,
-            endRadius: max(padWidth, padHeight) * 0.72
-        )
-    }
-
+    /// Recipe A++ hit / held rim (layered on P0 groove — not a cheap white idle ring).
     private var rimColor: Color {
         if useHeldLook { return PadHitLight.heldStroke }
         return PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
@@ -182,10 +161,17 @@ struct ForcePadCell: View {
         return PadHitLight.innerHighlightOpacity * Double(t)
     }
 
+    /// Slight fill lift on strike — keeps P0 radial as the idle base.
+    private var hitLiftOpacity: Double {
+        if useHeldLook { return 0.08 }
+        return 0.14 * Double(t)
+    }
+
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
             let expand = PadHitLight.haloClipExpand
+            let maxDim = max(padWidth, padHeight)
 
             ZStack {
                 // Recipe A++ soft outer perimeter halo (behind face).
@@ -208,19 +194,81 @@ struct ForcePadCell: View {
                         .allowsHitTesting(false)
                 }
 
-                // Vision A radial backlight face + A+ rim/inset.
+                // VISUAL-P0 idle face + Recipe A++ hit overlays.
                 shape
-                    .fill(faceFill)
-                    .overlay(
-                        // Soft face bevel from CSS inset highlights
-                        shape
-                            .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
-                            .blur(radius: 0.3)
-                            .padding(0.5)
-                            .opacity(t < 0.15 ? 1 : 0.35)
+                    // 1. Radial #6D28D9 → #2E1065 (center expanded ~75%)
+                    .fill(
+                        RadialGradient(
+                            stops: [
+                                .init(color: Color(hex: 0x6D28D9), location: 0.0),
+                                .init(color: Color(hex: 0x5B21B6), location: 0.72),
+                                .init(color: Color(hex: 0x2E1065), location: 1.0),
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: maxDim * 0.65
+                        )
                     )
+                    // 2. Top sheen → bottom shade
                     .overlay(
-                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
+                        shape.fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.07),
+                                    Color.black.opacity(0.45),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    )
+                    // 3. Top bevel highlight
+                    .overlay(
+                        shape
+                            .stroke(Color.white.opacity(0.22), lineWidth: 1.5)
+                            .offset(y: 1.0)
+                            .blur(radius: 0.5)
+                            .mask(
+                                shape.fill(
+                                    LinearGradient(
+                                        colors: [.black, .clear],
+                                        startPoint: .top,
+                                        endPoint: UnitPoint(x: 0.5, y: 0.28)
+                                    )
+                                )
+                            )
+                    )
+                    // 4. Bottom bevel shade
+                    .overlay(
+                        shape
+                            .stroke(Color.black.opacity(0.65), lineWidth: 3.0)
+                            .offset(y: -2.0)
+                            .blur(radius: 1.0)
+                            .mask(
+                                shape.fill(
+                                    LinearGradient(
+                                        colors: [.black, .clear],
+                                        startPoint: .bottom,
+                                        endPoint: UnitPoint(x: 0.5, y: 0.72)
+                                    )
+                                )
+                            )
+                    )
+                    // 5. Embedded groove — #09090B 1.5pt
+                    .overlay(
+                        shape.strokeBorder(PadTheme.padGrooveStroke, lineWidth: 1.5)
+                    )
+                    // 6. Recipe A++ fill lift (secondary)
+                    .overlay(
+                        shape.fill(Color.white.opacity(hitLiftOpacity))
+                    )
+                    // 7. Recipe A++ hit / held rim (on top of groove when flashing)
+                    .overlay(
+                        Group {
+                            if t > PadHitLight.intensityEpsilon || isActive {
+                                shape.strokeBorder(rimColor, lineWidth: rimWidth)
+                            }
+                        }
                     )
                     .overlay(
                         shape
@@ -228,7 +276,8 @@ struct ForcePadCell: View {
                             .padding(PadHitLight.innerStrokeInset)
                     )
                     .clipShape(shape)
-                    .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
+                    // 8. Drop shadow — 0 6px 12px rgba(0,0,0,0.65)
+                    .shadow(color: Color.black.opacity(0.65), radius: 6, x: 0, y: 6)
 
                 ForceTouchPadRepresentable(
                     onDown: onDown,
