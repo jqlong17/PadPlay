@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Hardware-inspired left cluster: 4 knobs + 2×3 round buttons + circular transport.
+/// Hardware-inspired left cluster: 4 knobs + 2×3 round buttons + 2×3 circular transport.
 /// Labels/capabilities are beginner-friendly (ZH default, EN via toggle).
 struct ControlClusterView: View {
     @EnvironmentObject private var controller: PadController
@@ -17,48 +17,57 @@ struct ControlClusterView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Brand + 中/EN top-right
-            HStack(alignment: .center, spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("PadPlay")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(PadTheme.brand)
-                    Text(settings.t("app.subtitle"))
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(PadTheme.dimLabel)
-                }
+        VStack(spacing: 8) {
+            // Brand row — hardware faceplate, not an app header stack
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("PadPlay")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(PadTheme.brand)
+                Text(settings.t("app.subtitle"))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(PadTheme.dimLabel)
                 Spacer(minLength: 4)
                 languageToggle
             }
 
-            Text(settings.t("hint.tap"))
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(PadTheme.dimLabel)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Compact status under brand (not a chip sidebar panel)
+            HStack(spacing: 8) {
+                Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(PadTheme.purpleGlow)
+                Text("·")
+                    .foregroundStyle(PadTheme.dimLabel)
+                Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(PadTheme.label)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Spacer(minLength: 0)
+            }
 
-            // 4 rotary knobs (2×2) — same chrome as hardware
-            VStack(spacing: 10) {
-                HStack(spacing: 14) {
+            // 4 rotary knobs (2×2)
+            VStack(spacing: 6) {
+                HStack(spacing: 10) {
                     knob(2)
                     knob(3)
                 }
-                HStack(spacing: 14) {
+                HStack(spacing: 10) {
                     knob(0)
                     knob(1)
                 }
             }
+            .padding(.top, 2)
 
-            // 2×3 small round function buttons (hardware silhouette, beginner labels)
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
+            // 2×3 function buttons
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
                     funcBtn(settings.t("btn.kit")) { controller.pressPadBank() }
                     funcBtn(settings.t("btn.velocity")) { controller.pressVelocityType() }
                     funcBtn(settings.t("btn.metronome"), active: engine.metronomeOn) {
                         controller.pressMode()
                     }
                 }
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     funcBtn(
                         settings.t("btn.tap"),
                         accent: PadTheme.purpleGlow,
@@ -80,32 +89,35 @@ struct ControlClusterView: View {
                 }
             }
 
-            // Circular transport — icons on face, beginner captions below
-            HStack(spacing: 6) {
-                transport(icon: "backward.end.fill", key: "tr.rewind") { controller.pressRewind() }
-                transport(icon: "stop.fill", key: "tr.stop") { controller.pressStop() }
-                transport(icon: "forward.end.fill", key: "tr.forward") { controller.pressFastForward() }
-                transport(
-                    icon: "circle.fill",
-                    key: "tr.record",
-                    accent: PadTheme.accentRed,
-                    active: controller.transportRecord
-                ) { controller.pressRecord() }
-                transport(
-                    icon: "play.fill",
-                    key: "tr.play",
-                    accent: PadTheme.purpleGlow,
-                    active: controller.transportPlay
-                ) { controller.pressPlay() }
-                transport(
-                    icon: "repeat",
-                    key: "tr.loop",
-                    active: controller.transportLoop
-                ) { controller.pressLoop() }
+            // Circular transport as 2×3 (preview silhouette), not a single long toolbar
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    transport(icon: "backward.end.fill", key: "tr.rewind") { controller.pressRewind() }
+                    transport(icon: "stop.fill", key: "tr.stop") { controller.pressStop() }
+                    transport(icon: "forward.end.fill", key: "tr.forward") { controller.pressFastForward() }
+                }
+                HStack(spacing: 6) {
+                    transport(
+                        icon: "circle.fill",
+                        key: "tr.record",
+                        accent: PadTheme.accentRed,
+                        active: controller.transportRecord
+                    ) { controller.pressRecord() }
+                    transport(
+                        icon: "play.fill",
+                        key: "tr.play",
+                        accent: PadTheme.purpleGlow,
+                        active: controller.transportPlay
+                    ) { controller.pressPlay() }
+                    transport(
+                        icon: "repeat",
+                        key: "tr.loop",
+                        active: controller.transportLoop
+                    ) { controller.pressLoop() }
+                }
             }
             .padding(.top, 2)
 
-            statusBar
             Spacer(minLength: 0)
         }
     }
@@ -119,16 +131,16 @@ struct ControlClusterView: View {
             HStack(spacing: 0) {
                 Text("中")
                     .foregroundStyle(settings.language == .zh ? Color.white : PadTheme.dimLabel)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
                     .background(settings.language == .zh ? PadTheme.purple : Color.clear)
                 Text("EN")
                     .foregroundStyle(settings.language == .en ? Color.white : PadTheme.dimLabel)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
                     .background(settings.language == .en ? PadTheme.purple : Color.clear)
             }
-            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .font(.system(size: 10, weight: .bold, design: .rounded))
             .background(Capsule().fill(Color.white.opacity(0.08)))
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 1))
@@ -188,50 +200,5 @@ struct ControlClusterView: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private var statusBar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(PadTheme.purpleGlow)
-                Spacer()
-                Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(PadTheme.label)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            HStack(spacing: 8) {
-                chip(settings.tf("status.velocity", settings.t(controller.velocityType.titleKey)))
-                chip(controller.noteRepeatOn ? settings.t("status.repeat.on") : settings.t("status.repeat.off"))
-                chip(engine.metronomeOn ? settings.t("status.click.on") : settings.t("status.click.off"))
-            }
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.07), Color.white.opacity(0.03)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-        )
-    }
-
-    private func chip(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .semibold, design: .rounded))
-            .foregroundStyle(PadTheme.dimLabel)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Capsule().fill(Color.white.opacity(0.06)))
     }
 }

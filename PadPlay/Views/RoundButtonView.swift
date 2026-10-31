@@ -11,7 +11,7 @@ struct RoundButtonView: View {
     var longPress: (() -> Void)? = nil
 
     var body: some View {
-        let size: CGFloat = compact ? 42 : 48
+        let size: CGFloat = compact ? 38 : 44
         let ring = isActive ? (accent ?? PadTheme.purpleGlow) : PadTheme.label.opacity(0.4)
 
         Button(action: action) {
