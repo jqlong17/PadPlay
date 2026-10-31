@@ -229,10 +229,12 @@ enum PadHitLight {
 
     // MARK: Soft outer halo — Recipe A++ (CSS box-shadow parity)
     //
-    // Peak CSS:
+    // Peak CSS (replaces idle drop shadow on hit):
     //   0 0 6px 2px rgba(245,232,255,0.50)
     //   0 0 10px 3px rgba(255,255,255,0.28)
-    // Drawn as stroked rings + blur (perimeter only — not a filled pad bloom).
+    // Drawn as stroked rings on a path expanded outside the face + blur
+    // (perimeter bloom — not a filled pad bloom). Same-size edge strokes read
+    // only as a thin rim once the face layer covers the inner half of the glow.
 
     /// Lilac halo — #F5E8FF.
     static let haloLilac = Color(hex: 0xF5E8FF)
@@ -249,6 +251,10 @@ enum PadHitLight {
     static let haloWhiteBlur: CGFloat = 10
     /// CSS spread ≈ 3px.
     static let haloWhiteSpread: CGFloat = 3
+
+    /// How far the halo stroke path sits outside the pad face (SoT expand 2–4pt).
+    /// Keeps the soft peak in the gutter so the face ZStack layer cannot cover it.
+    static let haloPathExpand: CGFloat = 3
 
     /// Clip expanded bounds so halo does not smear into neighbor pads.
     static let haloClipExpand: CGFloat = 8

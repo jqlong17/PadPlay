@@ -209,21 +209,37 @@ struct ForcePadCell: View {
     }
 
     /// Recipe A++ soft outer perimeter halo (behind face).
+    /// Path is expanded outside the face so the bloom reads in the gutter;
+    /// face drop shadow fades with `t` (CSS hit replaces idle shadow with halo).
     @ViewBuilder
     private var outerHitHalo: some View {
         if isFlashing {
-            shape
+            let expand = PadHitLight.haloPathExpand
+            let haloShape = RoundedRectangle(
+                cornerRadius: corner + expand,
+                style: .continuous
+            )
+
+            haloShape
                 .stroke(
                     PadHitLight.haloLilac.opacity(PadHitLight.haloLilacOpacity * Double(t)),
                     lineWidth: PadHitLight.haloLilacSpread * 2
                 )
+                .frame(
+                    width: padWidth + expand * 2,
+                    height: padHeight + expand * 2
+                )
                 .blur(radius: PadHitLight.haloLilacBlur)
                 .allowsHitTesting(false)
 
-            shape
+            haloShape
                 .stroke(
                     Color.white.opacity(PadHitLight.haloWhiteOpacity * Double(t)),
                     lineWidth: PadHitLight.haloWhiteSpread * 2
+                )
+                .frame(
+                    width: padWidth + expand * 2,
+                    height: padHeight + expand * 2
                 )
                 .blur(radius: PadHitLight.haloWhiteBlur)
                 .allowsHitTesting(false)
@@ -237,7 +253,13 @@ struct ForcePadCell: View {
             .overlay(hitRimOverlay)
             .overlay(innerHighlightOverlay)
             .clipShape(shape)
-            .shadow(color: Color.black.opacity(0.55), radius: 2.5, x: 0, y: 2)
+            // Idle drop shadow; fades out on hit so it does not crush the outer halo.
+            .shadow(
+                color: Color.black.opacity(0.55 * (1.0 - Double(t))),
+                radius: 2.5,
+                x: 0,
+                y: 2
+            )
     }
 
     /// Idle: charcoal + purple halo ≈0.16 + sheen + wells (beauty v2 Must checklist).

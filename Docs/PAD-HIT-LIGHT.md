@@ -56,7 +56,8 @@ box-shadow:
 | `haloLilac` / opacity | `#F5E8FF` α**0.50** | α 0.45–0.55 |
 | `haloLilacBlur` / spread | **6** / **2** | blur 6–10 · spread 2–4 |
 | `haloWhite` opacity / blur / spread | α**0.28** · **10** / **3** | `#F5E8FF`～白 第二层外晕 |
+| `haloPathExpand` | **3pt** | 光晕描边路径相对垫面外扩 2–4pt（避免被面层盖住） |
 | `haloClipExpand` | **8pt** | clip 垫外扩 8pt |
 | `attackDuration` / `decayDuration` | **0.10** / **0.25** | Attack ~100ms → Decay ~250ms |
 
-同一 `flash` 强度驱动 rim + halo；双层 stroke+blur（贴边，非整垫 bloom）。
+同一 `flash` 强度驱动 rim + halo；双层 stroke+blur 画在**外扩路径**上（四周 soft ring，非整垫 bloom）；hit 峰值淡出 idle 黑影以免压晕。
