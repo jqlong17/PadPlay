@@ -156,32 +156,32 @@ struct ForcePadCell: View {
         }
     }
 
-    private var innerRimOpacity: Double {
-        switch phase {
-        case .idle: return 0
-        case .hit: return PadHitLight.innerHighlightOpacity
-        case .held: return PadHitLight.heldInnerHighlightOpacity
-        }
+    private var centerHighlightOpacity: Double {
+        phase == .hit ? PadHitLight.centerHighlightOpacity : 0
     }
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             ZStack {
-                // Recipe A+: outer stroke (lineWidth+Color) + inset white ring, clipped inside pad.
-                // No outer bloom shadow. Fill nudge is secondary.
+                // PAD-HIT-LIGHT.md: fill lift + edge color; optional soft center highlight.
+                // Clipped inside pad — no outer purple bloom.
                 let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
                 shape
                     .fill(faceFill)
                     .overlay(
-                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(centerHighlightOpacity),
+                                Color.white.opacity(0)
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: shortSide * 0.55
+                        )
+                        .clipShape(shape)
                     )
                     .overlay(
-                        shape
-                            .strokeBorder(
-                                Color.white.opacity(innerRimOpacity),
-                                lineWidth: PadHitLight.innerStrokeWidth
-                            )
-                            .padding(PadHitLight.innerStrokeInset)
+                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
                     )
                     .clipShape(shape)
 
@@ -235,10 +235,10 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
 }
 
 #if DEBUG
-/// Tiny harness: idle / hit / held rim phases side-by-side (provisional tokens).
+/// Tiny harness: idle / hit / held phases (Docs/PAD-HIT-LIGHT.md tokens).
 #Preview("Pad hit light phases") {
     HStack(spacing: 16) {
-        ForEach([(false, false, "idle"), (true, false, "hit"), (true, true, "held")], id: \.2) { lit, active, label in
+        ForEach([(false, false, "idle"), (true, false, "hit"), (false, true, "held")], id: \.2) { lit, active, label in
             VStack(spacing: 8) {
                 ForcePadCell(
                     pad: PadInfo(id: 1, sampleName: "kick", nameKey: "pad.kick", categoryKey: "cat.kick"),
@@ -246,7 +246,7 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
                     padHeight: 86,
                     labelHeight: 16,
                     title: label,
-                    subtitle: "rim",
+                    subtitle: "flash",
                     isLit: lit,
                     isActive: active,
                     onDown: { _ in },

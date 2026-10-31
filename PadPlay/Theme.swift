@@ -17,8 +17,8 @@ enum PadTheme {
     static let padFill = Color(red: 203 / 255, green: 133 / 255, blue: 243 / 255)
     /// Optional soft edge — #B15EEC; no neon glow.
     static let padEdge = Color(red: 177 / 255, green: 94 / 255, blue: 236 / 255)
-    /// Legacy whole-face brighten — kept for aliases; hit look is rim-first via `PadHitLight`.
-    static let padHit = Color(red: 220 / 255, green: 170 / 255, blue: 250 / 255)
+    /// Hit face — mirrors `PadHitLight.hitFill` (#F2DEFF).
+    static let padHit = Color(red: 242 / 255, green: 222 / 255, blue: 255 / 255)
 
     // Legacy aliases used by leftover chrome; keep non-neon.
     static let purple = padFill
@@ -35,48 +35,37 @@ enum PadTheme {
     static let padAspect: CGFloat = 1.384
 }
 
-/// Pad strike rim flash — PAD-HIT-LIGHT **v2.1 Recipe A+** (install default).
-/// Single place to retune hex / widths / timing. Stroke/rim-first; fill secondary.
-/// No outer bloom shadow. Shared by finger + Play/Loop note-on.
+/// Pad strike flash — colors/timing from `Docs/PAD-HIT-LIGHT.md` (source of truth).
+/// Single place to retune. Shared by finger + Play/Loop note-on. No outer purple bloom.
 enum PadHitLight {
-    // MARK: Fill (secondary — never the hero cue)
+    // MARK: Fill
 
-    /// Idle face — #CB85F3.
+    /// Idle — #CB85F3.
     static let idleFill = PadTheme.padFill
-    /// Hit peak fill nudge — #D2A0F4 (restrained; rim stays primary).
-    static let hitFill = Color(red: 210 / 255, green: 160 / 255, blue: 244 / 255)
-    /// Finger-held fill — #D0A0F3.
-    static let heldFill = Color(red: 208 / 255, green: 160 / 255, blue: 243 / 255)
+    /// Hit peak — #F2DEFF.
+    static let hitFill = Color(red: 242 / 255, green: 222 / 255, blue: 255 / 255)
+    /// Held (finger down) — #E8C8FC.
+    static let heldFill = Color(red: 232 / 255, green: 200 / 255, blue: 252 / 255)
 
-    // MARK: Stroke / rim (primary strike cue) — Recipe A+
+    // MARK: Edge
 
-    /// Idle rim — #B15EEC.
+    /// Idle edge — #B15EEC.
     static let idleStroke = PadTheme.padEdge
-    /// Hit peak outer rim — #FFFFFF.
-    static let hitStroke = Color.white
-    /// Held outer rim — #F5E8FF.
-    static let heldStroke = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255)
+    /// Hit peak edge — #E8C4FF.
+    static let hitStroke = Color(red: 232 / 255, green: 196 / 255, blue: 255 / 255)
+    /// Held edge — #D9A8F5.
+    static let heldStroke = Color(red: 217 / 255, green: 168 / 255, blue: 245 / 255)
 
-    /// Idle stroke width — 1.5pt.
+    /// Idle / hit / held stroke widths (spec does not lock pt; keep modest, no outer bloom).
     static let idleStrokeWidth: CGFloat = 1.5
-    /// Hit peak outer stroke — 3.0pt.
-    static let hitStrokeWidth: CGFloat = 3.0
-    /// Held outer stroke — ~2.5pt.
-    static let heldStrokeWidth: CGFloat = 2.5
+    static let hitStrokeWidth: CGFloat = 2.5
+    static let heldStrokeWidth: CGFloat = 2.0
 
-    /// Inset white ring at hit peak (α ≈ 0.55).
-    static let innerHighlightOpacity: Double = 0.55
-    /// Inset white ring while held (α ≈ 0.35).
-    static let heldInnerHighlightOpacity: Double = 0.35
-    /// Inset ring stroke width (~1.75pt).
-    static let innerStrokeWidth: CGFloat = 1.75
-    /// Inset from pad edge before drawing the inner ring (~2pt).
-    static let innerStrokeInset: CGFloat = 2.0
+    /// Optional center highlight at hit peak (white 18% → 0).
+    static let centerHighlightOpacity: Double = 0.18
 
-    // MARK: Timing
+    // MARK: Timing (spec: attack ~90–120ms, decay ~220–300ms)
 
-    /// Attack 0→peak (~100ms) easeOut — edge arrives first.
     static let attackDuration: TimeInterval = 0.10
-    /// Decay peak→idle (~250ms) easeOut.
     static let decayDuration: TimeInterval = 0.25
 }
