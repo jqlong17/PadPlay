@@ -49,7 +49,8 @@ struct PadGridView: View {
     }
 
     /// Fit 4×4 horizontal pads + under-pad labels into the available rectangle.
-    private static func layout(in size: CGSize) -> (
+    /// Shared with calibration wireframe so reported pad frames match live layout.
+    static func layout(in size: CGSize) -> (
         padW: CGFloat, padH: CGFloat, labelH: CGFloat, cellH: CGFloat,
         hGap: CGFloat, vGap: CGFloat, inset: CGFloat, gridW: CGFloat, gridH: CGFloat
     ) {

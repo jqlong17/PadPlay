@@ -51,6 +51,18 @@ enum L10n {
             .zh: "后续更多低频选项也会放在这里，避免挤乱左栏 2×3。",
             .en: "More low-frequency options will land here so the 2×3 grids stay clean.",
         ],
+        "settings.debug": [.zh: "调试", .en: "Debug"],
+        "settings.calibration": [.zh: "矫正模式", .en: "Calibration mode"],
+        "settings.calibration.help": [
+            .zh: "打开后主界面只显示线框：矩形、十字、编号和间距，方便对照布局。默认关闭。",
+            .en: "When on, the stage shows a wireframe only (rects, crosses, ids, gaps) for layout checks. Off by default.",
+        ],
+        "settings.calibration.copy": [.zh: "复制布局报告", .en: "Copy layout report"],
+        "settings.calibration.copied": [.zh: "已复制到剪贴板", .en: "Copied to clipboard"],
+        "settings.calibration.copy.needOn": [
+            .zh: "请先打开矫正模式，再复制报告。",
+            .en: "Turn on Calibration mode first, then copy the report.",
+        ],
 
         // Transport
         "tr.rewind": [.zh: "开头", .en: "Start"],
@@ -127,18 +139,25 @@ enum L10n {
 @MainActor
 final class AppSettings: ObservableObject {
     @Published var language: AppLanguage {
-        didSet { UserDefaults.standard.set(language.rawValue, forKey: Self.key) }
+        didSet { UserDefaults.standard.set(language.rawValue, forKey: Self.languageKey) }
     }
 
-    private static let key = "padplay.language"
+    /// Debug: replace live chrome/pads with a wireframe calibration HUD. Default OFF.
+    @Published var calibrationMode: Bool {
+        didSet { UserDefaults.standard.set(calibrationMode, forKey: Self.calibrationKey) }
+    }
+
+    private static let languageKey = "padplay.language"
+    private static let calibrationKey = "padplay.calibrationMode"
 
     init() {
-        if let raw = UserDefaults.standard.string(forKey: Self.key),
+        if let raw = UserDefaults.standard.string(forKey: Self.languageKey),
            let lang = AppLanguage(rawValue: raw) {
             language = lang
         } else {
             language = .zh
         }
+        calibrationMode = UserDefaults.standard.bool(forKey: Self.calibrationKey)
     }
 
     func t(_ key: String) -> String { L10n.t(key, language) }

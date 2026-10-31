@@ -18,6 +18,8 @@
 		D7A506726D334694B4BEAD8E /* PadGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E17A78321A24D458B04A6C0 /* PadGridView.swift */; };
 		0E9F40E309934FEBBC62A7FE /* RoundButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */; };
 		C1A8E4F029B64D7E9F3A1C20 /* SettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D2F91E4A8C4E6B9D0E3F15 /* SettingsSheetView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* CalibrationLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* CalibrationLayout.swift */; };
+		C2D3E4F5061728394A5B6C7D /* CalibrationWireframeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E4F5061728394A5B6C7D8E /* CalibrationWireframeView.swift */; };
 		BC9D3F57256A4C2883C05C46 /* clap.wav in Resources */ = {isa = PBXBuildFile; fileRef = E052BE73AA014EF0913E6B6D /* clap.wav */; };
 		9EC7708AB39C488EA0CAE6A5 /* closed_hat.wav in Resources */ = {isa = PBXBuildFile; fileRef = 356533F8E3404C299CE11BC5 /* closed_hat.wav */; };
 		AC8F66703F0E49A59DEC6197 /* cowbell.wav in Resources */ = {isa = PBXBuildFile; fileRef = AF4AF4E4945344A8A7C1F8C1 /* cowbell.wav */; };
@@ -55,6 +57,8 @@
 		0E17A78321A24D458B04A6C0 /* PadGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadGridView.swift; sourceTree = "<group>"; };
 		2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoundButtonView.swift; sourceTree = "<group>"; };
 		B7D2F91E4A8C4E6B9D0E3F15 /* SettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheetView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5061728394A5B6C /* CalibrationLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationLayout.swift; sourceTree = "<group>"; };
+		D3E4F5061728394A5B6C7D8E /* CalibrationWireframeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationWireframeView.swift; sourceTree = "<group>"; };
 		E052BE73AA014EF0913E6B6D /* clap.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clap.wav; sourceTree = "<group>"; };
 		356533F8E3404C299CE11BC5 /* closed_hat.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = closed_hat.wav; sourceTree = "<group>"; };
 		AF4AF4E4945344A8A7C1F8C1 /* cowbell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = cowbell.wav; sourceTree = "<group>"; };
@@ -134,6 +138,7 @@
 				E26DD5D70D124B6AB1CAFDC0 /* PadController.swift */,
 				904855075B8D4B7A9B9A0D03 /* PadDefs.swift */,
 				19E66B0297AB40879A8D8B90 /* L10n.swift */,
+				B1C2D3E4F5061728394A5B6C /* CalibrationLayout.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -146,6 +151,7 @@
 				0E17A78321A24D458B04A6C0 /* PadGridView.swift */,
 				2C105CAB1CF4423B828AA85D /* RoundButtonView.swift */,
 				B7D2F91E4A8C4E6B9D0E3F15 /* SettingsSheetView.swift */,
+				D3E4F5061728394A5B6C7D8E /* CalibrationWireframeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -287,6 +293,8 @@
 				D7A506726D334694B4BEAD8E /* PadGridView.swift in Sources */,
 				0E9F40E309934FEBBC62A7FE /* RoundButtonView.swift in Sources */,
 				C1A8E4F029B64D7E9F3A1C20 /* SettingsSheetView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* CalibrationLayout.swift in Sources */,
+				C2D3E4F5061728394A5B6C7D /* CalibrationWireframeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

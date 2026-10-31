@@ -3,7 +3,10 @@ import SwiftUI
 /// Settings panel — language first; anchors from the pad-stage top-right gear (vision A).
 struct SettingsSheetView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var calibration: CalibrationLayoutStore
     @Environment(\.dismiss) private var dismiss
+
+    @State private var copyHint: String?
 
     var body: some View {
         NavigationStack {
@@ -14,6 +17,34 @@ struct SettingsSheetView: View {
                     Text(settings.t("settings.language"))
                 } footer: {
                     Text(settings.t("settings.footer"))
+                        .font(.footnote)
+                }
+
+                Section {
+                    Toggle(isOn: $settings.calibrationMode) {
+                        Text(settings.t("settings.calibration"))
+                    }
+                    .tint(Color.white.opacity(0.55))
+                    .accessibilityHint(settings.t("settings.calibration.help"))
+
+                    Button {
+                        copyLayoutReport()
+                    } label: {
+                        HStack {
+                            Text(settings.t("settings.calibration.copy"))
+                            Spacer(minLength: 8)
+                            if let copyHint {
+                                Text(copyHint)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(!settings.calibrationMode)
+                } header: {
+                    Text(settings.t("settings.debug"))
+                } footer: {
+                    Text(settings.t("settings.calibration.help"))
                         .font(.footnote)
                 }
             }
@@ -66,5 +97,14 @@ struct SettingsSheetView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(settings.language == lang ? .isSelected : [])
+    }
+
+    private func copyLayoutReport() {
+        guard settings.calibrationMode else {
+            copyHint = settings.t("settings.calibration.copy.needOn")
+            return
+        }
+        calibration.copyReportToPasteboard()
+        copyHint = settings.t("settings.calibration.copied")
     }
 }

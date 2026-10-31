@@ -5,6 +5,7 @@ struct PadPlayApp: App {
     @StateObject private var engine = DrumEngine()
     @StateObject private var controller = PadController()
     @StateObject private var settings = AppSettings()
+    @StateObject private var calibration = CalibrationLayoutStore()
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +13,7 @@ struct PadPlayApp: App {
                 .environmentObject(engine)
                 .environmentObject(controller)
                 .environmentObject(settings)
+                .environmentObject(calibration)
                 .preferredColorScheme(.dark)
                 .statusBarHidden(true)
                 .onAppear {
