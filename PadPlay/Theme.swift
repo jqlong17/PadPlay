@@ -227,34 +227,43 @@ enum PadHitLight {
     static let innerStrokeWidth: CGFloat = 1.75
     static let innerStrokeInset: CGFloat = 2.0
 
-    // MARK: Soft outer halo — Recipe A++ (CSS box-shadow parity)
+    // MARK: Soft outer halo — Recipe A++ (mock luminance parity)
     //
-    // Peak CSS (replaces idle drop shadow on hit):
+    // Visual SoT: white-lilac soft ring in the gutter at flash peak (mock L≈110),
+    // color #F5E8FF～白, blur 6–10, expand 2–4 — not a full-pad purple bloom.
+    //
+    // CSS reference (web box-shadow keeps peak α after spread):
     //   0 0 6px 2px rgba(245,232,255,0.50)
     //   0 0 10px 3px rgba(255,255,255,0.28)
-    // Drawn as stroked rings on a path expanded outside the face + blur
-    // (perimeter bloom — not a filled pad bloom). Same-size edge strokes read
-    // only as a thin rim once the face layer covers the inner half of the glow.
+    // SwiftUI `.stroke` + `.blur` dilutes α heavily (device peak was ~L59 with
+    // literal CSS α + path expand alone). Install adds a soft fill RING and
+    // raises white bloom α (0.28→0.45) so the gutter reads near mock L≈110;
+    // `haloClipExpand` still stops neighbor-face smear.
 
     /// Lilac halo — #F5E8FF.
     static let haloLilac = Color(hex: 0xF5E8FF)
-    /// CSS layer 1 peak α.
-    static let haloLilacOpacity: Double = 0.50
-    /// CSS blur ≈ 6px.
-    static let haloLilacBlur: CGFloat = 6
-    /// CSS spread ≈ 2px → stroke half-width each side.
-    static let haloLilacSpread: CGFloat = 2
 
-    /// CSS layer 2 peak α (white).
-    static let haloWhiteOpacity: Double = 0.28
-    /// CSS blur ≈ 10px.
-    static let haloWhiteBlur: CGFloat = 10
-    /// CSS spread ≈ 3px.
-    static let haloWhiteSpread: CGFloat = 3
+    /// Soft fill-ring band outside the face (primary luminance carrier).
+    /// Extra annulus thickness beyond `haloPathExpand` (gutter only — not a pad fill).
+    static let haloRingWidth: CGFloat = 3.0
+    /// Pre-blur lilac α for the fill ring (SoT mid α; ring geometry carries luminance).
+    static let haloRingOpacity: Double = 0.55
+    /// Fill-ring blur — soft but tight so peak stays bright after dilution.
+    static let haloRingBlur: CGFloat = 5
 
-    /// How far the halo stroke path sits outside the pad face (SoT expand 2–4pt).
-    /// Keeps the soft peak in the gutter so the face ZStack layer cannot cover it.
-    static let haloPathExpand: CGFloat = 3
+    /// Lilac stroke reinforcement (SoT upper α).
+    static let haloLilacOpacity: Double = 0.55
+    static let haloLilacBlur: CGFloat = 7
+    /// Spread toward upper SoT 2–4.
+    static let haloLilacSpread: CGFloat = 3
+
+    /// White outer bloom — boosted vs CSS 0.28 (stroke+blur was under-lighting).
+    static let haloWhiteOpacity: Double = 0.45
+    static let haloWhiteBlur: CGFloat = 8
+    static let haloWhiteSpread: CGFloat = 3.5
+
+    /// Halo path / ring sit outside the pad face (SoT expand 2–4pt).
+    static let haloPathExpand: CGFloat = 4
 
     /// Clip expanded bounds so halo does not smear into neighbor pads.
     static let haloClipExpand: CGFloat = 8

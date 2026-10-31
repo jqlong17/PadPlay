@@ -39,9 +39,9 @@ Recipe A+（仅描边无外晕）保留作退路；Recipe B 内 LED 仍为可选
 
 ---
 
-## 装机映射（`PadHitLight` — 落在上表区间内）
+## 装机映射（`PadHitLight` — 视觉对齐 mock 亮度）
 
-Peak CSS 参考（web baseline，与上表兼容）：
+Peak CSS 参考（web baseline；CSS `box-shadow` 的 spread 后峰值 α 不易被稀释）：
 
 ```css
 box-shadow:
@@ -50,14 +50,17 @@ box-shadow:
   0 0 10px 3px rgba(255,255,255,0.28);
 ```
 
-| Token | 值 | 对应 SoT |
+> **SwiftUI 注：** 字面搬 CSS α + 仅 stroke+blur 时，设备实测外环峰值仅约 L≈59（灰抬升），远低于设计师 mock 白lilac 软环约 L≈110。装机用 **soft fill ring（垫外环带）** + 略抬的 pre-blur α / expand，对齐 mock 亮度；仍禁止整垫 bloom、邻垫糊面。
+
+| Token | 值 | 对应 SoT / 说明 |
 |-------|----|----------|
 | `idleFill` | `#1C1C22` | beauty v2 charcoal |
-| `haloLilac` / opacity | `#F5E8FF` α**0.50** | α 0.45–0.55 |
-| `haloLilacBlur` / spread | **6** / **2** | blur 6–10 · spread 2–4 |
-| `haloWhite` opacity / blur / spread | α**0.28** · **10** / **3** | `#F5E8FF`～白 第二层外晕 |
-| `haloPathExpand` | **3pt** | 光晕描边路径相对垫面外扩 2–4pt（避免被面层盖住） |
-| `haloClipExpand` | **8pt** | clip 垫外扩 8pt |
+| `haloRingWidth` / opacity / blur | **3.0** / α**0.55** / **5** | 垫外 soft fill 环带（主亮度）；非整垫 fill |
+| `haloLilac` / opacity | `#F5E8FF` α**0.55** | α 0.45–0.55 上沿 + stroke 补色 |
+| `haloLilacBlur` / spread | **7** / **3** | blur 6–10 · spread 2–4 |
+| `haloWhite` opacity / blur / spread | α**0.45** · **8** / **3.5** | 第二层白外晕（相对 CSS 0.28 抬高以补偿 blur 稀释） |
+| `haloPathExpand` | **4pt** | 光晕路径相对垫面外扩 2–4pt |
+| `haloClipExpand` | **8pt** | clip 垫外扩 8pt（防邻垫糊面） |
 | `attackDuration` / `decayDuration` | **0.10** / **0.25** | Attack ~100ms → Decay ~250ms |
 
-同一 `flash` 强度驱动 rim + halo；双层 stroke+blur 画在**外扩路径**上（四周 soft ring，非整垫 bloom）；hit 峰值淡出 idle 黑影以免压晕。
+同一 `flash` 强度驱动 rim + halo；fill ring + 双层 stroke+blur 画在**外扩路径**上（四周 soft ring，非整垫 bloom）；hit 峰值淡出 idle 黑影以免压晕。
