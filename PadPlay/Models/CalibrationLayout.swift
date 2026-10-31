@@ -8,11 +8,14 @@ enum CalibrationTokens {
     static let clusterWidth: CGFloat = 200
     static let knobDiameter: CGFloat = 84
     static let knobColGap: CGFloat = 32
-    static let knobRowGap: CGFloat = 14
-    static let sectionGap: CGFloat = 26
+    static let knobRowGap: CGFloat = 10
+    static let sectionGap: CGFloat = 18
     static let buttonDiameter: CGFloat = 56
     static let buttonColGap: CGFloat = 16
     static let gearDiameter: CGFloat = 34
+    static let gearInset: CGFloat = 18
+    /// Shared knob1 / pad13 face top in chassis-root coordinates.
+    static let sharedFaceTop: CGFloat = 104
 }
 
 /// Measured section / gutter gaps reported alongside frames.
@@ -125,7 +128,17 @@ final class CalibrationLayoutStore: ObservableObject {
         lines.append(gapLine(name: "btnCol", measured: gaps.btnCol, token: CalibrationTokens.buttonColGap))
         lines.append(gapLine(name: "padGapH", measured: gaps.padGapH, token: nil))
         lines.append(gapLine(name: "padGapV", measured: gaps.padGapV, token: nil))
-        lines.append("Vision A token targets: left-w 340, cluster 200, knob⌀84, col32/row14, sectionGap26, btn⌀56, gear⌀34.")
+        // Alignment lock: knob1.y ≈ pad13.y within 3pt near sharedFaceTop.
+        if let knob = frames["knob1"], let pad = frames["pad13"],
+           !knob.isNull, !pad.isNull {
+            let d = pad.minY - knob.minY
+            lines.append(
+                "align: knob1.y \(fmt(knob.minY)) pad13.y \(fmt(pad.minY)) Δ \(fmt(d)) targetFaceTop \(fmt(CalibrationTokens.sharedFaceTop))"
+            )
+        }
+        lines.append(
+            "Vision A token targets: left-w 340, cluster 200, knob⌀84, col32/row10, sectionGap18, btn⌀56, gear⌀34 inset18, sharedFaceTop104."
+        )
         return lines.joined(separator: "\n")
     }
 
@@ -154,7 +167,11 @@ final class CalibrationLayoutStore: ObservableObject {
         }
         if id.hasPrefix("knob") {
             let t = CalibrationTokens.knobDiameter
-            return ("knob⌀\(fmt(t))", "dw \(fmt(rect.width - t)) dh \(fmt(rect.height - t))")
+            var delta = "dw \(fmt(rect.width - t)) dh \(fmt(rect.height - t))"
+            if id == "knob1" {
+                delta += " dyFace \(fmt(rect.minY - CalibrationTokens.sharedFaceTop))"
+            }
+            return ("knob⌀\(fmt(t))", delta)
         }
         if id.hasPrefix("btn") || id.hasPrefix("transport") {
             let t = CalibrationTokens.buttonDiameter
@@ -162,7 +179,21 @@ final class CalibrationLayoutStore: ObservableObject {
         }
         if id == "gear" {
             let t = CalibrationTokens.gearDiameter
-            return ("gear⌀\(fmt(t))", "dw \(fmt(rect.width - t)) dh \(fmt(rect.height - t))")
+            let inset = CalibrationTokens.gearInset
+            // Trailing gutter vs chassis screenWidth — target 18.
+            let rightGutter: CGFloat = {
+                guard screenSize.width > 1 else { return .nan }
+                return screenSize.width - rect.maxX
+            }()
+            let topGutter = rect.minY
+            return (
+                "gear⌀\(fmt(t)) inset\(fmt(inset))",
+                "dw \(fmt(rect.width - t)) dh \(fmt(rect.height - t)) top \(fmt(topGutter - inset)) right \(fmt(rightGutter - inset))"
+            )
+        }
+        if id == "pad13" {
+            let target = CalibrationTokens.sharedFaceTop
+            return ("faceTop \(fmt(target))", "dyFace \(fmt(rect.minY - target))")
         }
         // Pads flex to stage — no fixed Vision A size token.
         return ("—", "—")

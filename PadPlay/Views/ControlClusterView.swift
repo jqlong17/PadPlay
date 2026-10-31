@@ -1,13 +1,16 @@
 import SwiftUI
 
 /// Hardware-inspired left cluster — vision A / C locked metrics.
-/// Brand + status → knobs 2×2 → function 2×3 → transport 2×3.
-/// Top-aligned fixed section gaps (no space-between). Settings gear lives on pad-stage top-right.
+/// Brand + status above; knobs 2×2 → function 2×3 → transport 2×3 on shared face-top axis.
+/// Top-aligned fixed section gaps (no space-between). Settings gear lives on chassis top-right.
 /// Language lives in Settings sheet (ZH default). No purple neon on chrome.
 struct ControlClusterView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
     @EnvironmentObject private var settings: AppSettings
+
+    /// Column-local Y where knob faces start (matches pad13 via ContentView sharedFaceTop).
+    var faceTopInColumn: CGFloat = LeftChromeMetrics.sharedFaceTop
 
     private var knobLabels: [String] {
         [
@@ -25,86 +28,92 @@ struct ControlClusterView: View {
             // Horizontally center `--cluster-w` island inside ~340 left column.
             HStack(spacing: 0) {
                 Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 0) {
+                ZStack(alignment: .topLeading) {
+                    // Brand sits in the header band above the shared face-top axis.
                     brandBlock(m)
-                        .padding(.bottom, m.brandBottom)
+                        .padding(.top, m.leftTopPadding)
 
-                    knobsBlock(m)
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Pin knob faces to shared axis (pad13 uses the same column-local Y).
+                        Color.clear.frame(height: faceTopInColumn)
+
+                        knobsBlock(m)
+                            .padding(.bottom, m.sectionGap)
+
+                        buttonGrid(m) {
+                            funcBtn(settings.t("btn.kit"), diameter: m.buttonDiameter) {
+                                controller.pressPadBank()
+                            }
+                            funcBtn(settings.t("btn.velocity"), diameter: m.buttonDiameter) {
+                                controller.pressVelocityType()
+                            }
+                            funcBtn(
+                                settings.t("btn.metronome"),
+                                diameter: m.buttonDiameter,
+                                active: engine.metronomeOn
+                            ) {
+                                controller.pressMode()
+                            }
+                            funcBtn(
+                                settings.t("btn.tap"),
+                                diameter: m.buttonDiameter,
+                                pulse: engine.tapFlash
+                            ) {
+                                controller.pressTapTempo()
+                            }
+                            funcBtn(
+                                settings.t("btn.repeat"),
+                                diameter: m.buttonDiameter,
+                                accent: PadTheme.accentRed,
+                                active: controller.noteRepeatOn
+                            ) {
+                                controller.pressNoteRepeat()
+                            }
+                            funcBtn(settings.t("btn.clear"), diameter: m.buttonDiameter) {
+                                engine.clearPattern()
+                            }
+                        }
                         .padding(.bottom, m.sectionGap)
 
-                    buttonGrid(m) {
-                        funcBtn(settings.t("btn.kit"), diameter: m.buttonDiameter) {
-                            controller.pressPadBank()
+                        buttonGrid(m) {
+                            transport(icon: "backward.end.fill", key: "tr.rewind", diameter: m.buttonDiameter) {
+                                controller.pressRewind()
+                            }
+                            transport(icon: "stop.fill", key: "tr.stop", diameter: m.buttonDiameter) {
+                                controller.pressStop()
+                            }
+                            transport(icon: "forward.end.fill", key: "tr.forward", diameter: m.buttonDiameter) {
+                                controller.pressFastForward()
+                            }
+                            transport(
+                                icon: "circle.fill",
+                                key: "tr.record",
+                                diameter: m.buttonDiameter,
+                                accent: PadTheme.accentRed,
+                                active: controller.transportRecord
+                            ) { controller.pressRecord() }
+                            transport(
+                                icon: "play.fill",
+                                key: "tr.play",
+                                diameter: m.buttonDiameter,
+                                active: controller.transportPlay
+                            ) { controller.pressPlay() }
+                            transport(
+                                icon: "repeat",
+                                key: "tr.loop",
+                                diameter: m.buttonDiameter,
+                                active: controller.transportLoop
+                            ) { controller.pressLoop() }
                         }
-                        funcBtn(settings.t("btn.velocity"), diameter: m.buttonDiameter) {
-                            controller.pressVelocityType()
-                        }
-                        funcBtn(
-                            settings.t("btn.metronome"),
-                            diameter: m.buttonDiameter,
-                            active: engine.metronomeOn
-                        ) {
-                            controller.pressMode()
-                        }
-                        funcBtn(
-                            settings.t("btn.tap"),
-                            diameter: m.buttonDiameter,
-                            pulse: engine.tapFlash
-                        ) {
-                            controller.pressTapTempo()
-                        }
-                        funcBtn(
-                            settings.t("btn.repeat"),
-                            diameter: m.buttonDiameter,
-                            accent: PadTheme.accentRed,
-                            active: controller.noteRepeatOn
-                        ) {
-                            controller.pressNoteRepeat()
-                        }
-                        funcBtn(settings.t("btn.clear"), diameter: m.buttonDiameter) {
-                            engine.clearPattern()
-                        }
-                    }
-                    .padding(.bottom, m.sectionGap)
 
-                    buttonGrid(m) {
-                        transport(icon: "backward.end.fill", key: "tr.rewind", diameter: m.buttonDiameter) {
-                            controller.pressRewind()
-                        }
-                        transport(icon: "stop.fill", key: "tr.stop", diameter: m.buttonDiameter) {
-                            controller.pressStop()
-                        }
-                        transport(icon: "forward.end.fill", key: "tr.forward", diameter: m.buttonDiameter) {
-                            controller.pressFastForward()
-                        }
-                        transport(
-                            icon: "circle.fill",
-                            key: "tr.record",
-                            diameter: m.buttonDiameter,
-                            accent: PadTheme.accentRed,
-                            active: controller.transportRecord
-                        ) { controller.pressRecord() }
-                        transport(
-                            icon: "play.fill",
-                            key: "tr.play",
-                            diameter: m.buttonDiameter,
-                            active: controller.transportPlay
-                        ) { controller.pressPlay() }
-                        transport(
-                            icon: "repeat",
-                            key: "tr.loop",
-                            diameter: m.buttonDiameter,
-                            active: controller.transportLoop
-                        ) { controller.pressLoop() }
+                        // flex-start: leftover height stays below transport (no space-between stretch).
+                        Spacer(minLength: 0)
                     }
-
-                    // flex-start: leftover height stays below transport (no space-between stretch).
-                    Spacer(minLength: 0)
                 }
                 .frame(width: m.clusterWidth, alignment: .topLeading)
+                .frame(maxHeight: .infinity, alignment: .top)
                 Spacer(minLength: 0)
             }
-            .padding(.top, m.leftTopPadding)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
     }

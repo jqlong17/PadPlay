@@ -7,10 +7,15 @@ struct PadGridView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var settings: AppSettings
 
+    /// `.top` pins pad13 face to the top of the available rect (shared knob/pad axis).
+    var verticalAlignment: VerticalAlignment = .center
+
     var body: some View {
         GeometryReader { geo in
-            let layout = Self.layout(in: geo.size)
+            let pinTop = verticalAlignment == .top
+            let layout = Self.layout(in: geo.size, pinTopFace: pinTop)
             let rows = controller.gridRowsTopFirst
+            let frameAlign: Alignment = pinTop ? .top : .center
 
             ZStack {
                 RoundedRectangle(cornerRadius: max(6, layout.padH * 0.08), style: .continuous)
@@ -41,23 +46,29 @@ struct PadGridView: View {
                         }
                     }
                 }
-                .padding(layout.inset)
+                .padding(.leading, layout.inset)
+                .padding(.trailing, layout.inset)
+                .padding(.bottom, layout.inset)
+                .padding(.top, layout.topInset)
             }
             .frame(width: layout.gridW, height: layout.gridH)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlign)
         }
     }
 
     /// Fit 4×4 horizontal pads + under-pad labels into the available rectangle.
     /// Shared with calibration wireframe so reported pad frames match live layout.
-    static func layout(in size: CGSize) -> (
+    /// When `pinTopFace` is true, top pad faces sit at y=0 of `size` (no top inset).
+    static func layout(in size: CGSize, pinTopFace: Bool = false) -> (
         padW: CGFloat, padH: CGFloat, labelH: CGFloat, cellH: CGFloat,
-        hGap: CGFloat, vGap: CGFloat, inset: CGFloat, gridW: CGFloat, gridH: CGFloat
+        hGap: CGFloat, vGap: CGFloat, inset: CGFloat, topInset: CGFloat,
+        gridW: CGFloat, gridH: CGFloat
     ) {
         let aspect = PadTheme.padAspect
         let inset: CGFloat = max(4, min(10, min(size.width, size.height) * 0.012))
+        let topInset: CGFloat = pinTopFace ? 0 : inset
         let availW = max(1, size.width - inset * 2)
-        let availH = max(1, size.height - inset * 2)
+        let availH = max(1, size.height - topInset - inset)
 
         // Mock: h-gap ≈ 14% of pad width; v-gap carries the label band.
         func metrics(padW: CGFloat) -> (padH: CGFloat, hGap: CGFloat, labelH: CGFloat, vGap: CGFloat, cellH: CGFloat, gridW: CGFloat, gridH: CGFloat) {
@@ -68,7 +79,7 @@ struct PadGridView: View {
             let vGap = max(4, labelPad) // spacing between rows (label sits in cell)
             let cellH = padH + labelPad + labelH
             let gridW = 4 * padW + 3 * hGap + inset * 2
-            let gridH = 4 * cellH + 3 * vGap + inset * 2
+            let gridH = 4 * cellH + 3 * vGap + topInset + inset
             return (padH, hGap, labelH, vGap, cellH, gridW, gridH)
         }
 
@@ -98,6 +109,7 @@ struct PadGridView: View {
             hGap: m.hGap,
             vGap: m.vGap,
             inset: inset,
+            topInset: topInset,
             gridW: m.gridW,
             gridH: m.gridH
         )
