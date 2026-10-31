@@ -173,188 +173,217 @@ struct ForcePadCell: View {
         return 0.15 + 0.85 * (1.0 - Double(t))
     }
 
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: corner, style: .continuous)
+    }
+
+    private var maxDim: CGFloat { max(padWidth, padHeight) }
+
+    private var isFlashing: Bool { t > PadHitLight.intensityEpsilon }
+
+    private var showHitRim: Bool { isFlashing || isActive }
+
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
-            let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
-            let expand = PadHitLight.haloClipExpand
-            let maxDim = max(padWidth, padHeight)
+            padFaceStack
+                .frame(width: padWidth, height: padHeight)
+                // Allow halo into the gap, then clip so it does not smear onto neighbor faces.
+                .padding(PadHitLight.haloClipExpand)
+                .clipped()
+                .padding(-PadHitLight.haloClipExpand)
+                .scaleEffect(isActive ? 0.97 : 1)
+                .animation(.easeOut(duration: 0.08), value: isActive)
 
-            ZStack {
-                // Recipe A++ soft outer perimeter halo (behind face).
-                // CSS: 0 0 6px 2px rgba(245,232,255,0.50) + 0 0 10px 3px rgba(255,255,255,0.28)
-                if t > PadHitLight.intensityEpsilon {
-                    shape
-                        .stroke(
-                            PadHitLight.haloLilac.opacity(PadHitLight.haloLilacOpacity * Double(t)),
-                            lineWidth: PadHitLight.haloLilacSpread * 2
-                        )
-                        .blur(radius: PadHitLight.haloLilacBlur)
-                        .allowsHitTesting(false)
-
-                    shape
-                        .stroke(
-                            Color.white.opacity(PadHitLight.haloWhiteOpacity * Double(t)),
-                            lineWidth: PadHitLight.haloWhiteSpread * 2
-                        )
-                        .blur(radius: PadHitLight.haloWhiteBlur)
-                        .allowsHitTesting(false)
-                }
-
-                // Beauty v2 idle face + Recipe A++ hit overlays.
-                shape
-                    // 1. Charcoal base `#1C1C22`
-                    .fill(PadTheme.padFace)
-                    // 2. Soft matte purple halo ellipse @ ≈0.16 (NOT jelly radial candy)
-                    .overlay(
-                        shape.fill(
-                            RadialGradient(
-                                stops: [
-                                    .init(color: PadTheme.padHalo, location: 0.0),
-                                    .init(color: PadTheme.padHaloMid, location: 0.42),
-                                    .init(color: Color.clear, location: 0.72),
-                                ],
-                                center: UnitPoint(x: 0.5, y: 0.40),
-                                startRadius: 0,
-                                endRadius: maxDim * 0.55
-                            )
-                        )
-                    )
-                    // 3. Soft matte top sheen → bottom shade
-                    .overlay(
-                        shape.fill(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Color.white.opacity(0.055), location: 0.0),
-                                    .init(color: Color.white.opacity(0.01), location: 0.28),
-                                    .init(color: Color.black.opacity(0.35), location: 1.0),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .opacity(sheenOpacity)
-                    )
-                    // 4. Micro top rim highlight (white@0.04 / inset white@0.07)
-                    .overlay(
-                        shape
-                            .stroke(Color.white.opacity(0.07), lineWidth: 1.0)
-                            .offset(y: 0.5)
-                            .blur(radius: 0.3)
-                            .mask(
-                                shape.fill(
-                                    LinearGradient(
-                                        colors: [.black, .clear],
-                                        startPoint: .top,
-                                        endPoint: UnitPoint(x: 0.5, y: 0.22)
-                                    )
-                                )
-                            )
-                    )
-                    // 5. Bottom inset shade
-                    .overlay(
-                        shape
-                            .stroke(Color.black.opacity(0.72), lineWidth: 3.0)
-                            .offset(y: -1.5)
-                            .blur(radius: 1.5)
-                            .mask(
-                                shape.fill(
-                                    LinearGradient(
-                                        colors: [.black, .clear],
-                                        startPoint: .bottom,
-                                        endPoint: UnitPoint(x: 0.5, y: 0.68)
-                                    )
-                                )
-                            )
-                    )
-                    // 6. Thin face border `#0A0A0C`
-                    .overlay(
-                        shape.strokeBorder(PadTheme.padBorder, lineWidth: 1.0)
-                    )
-                    // 7. Well 镶嵌 — `0 0 0 1.5px #070709` + micro rim white@0.04
-                    .overlay(
-                        shape.strokeBorder(PadTheme.padWell, lineWidth: 1.5)
-                    )
-                    .overlay(
-                        shape
-                            .stroke(Color.white.opacity(0.04), lineWidth: 1.0)
-                            .offset(y: 1.0)
-                            .mask(
-                                shape.fill(
-                                    LinearGradient(
-                                        colors: [.black, .clear],
-                                        startPoint: .top,
-                                        endPoint: UnitPoint(x: 0.5, y: 0.35)
-                                    )
-                                )
-                            )
-                    )
-                    // 8. Recipe A++ lilac/white face lift (charcoal → lilac peak)
-                    .overlay(
-                        Group {
-                            if t > PadHitLight.intensityEpsilon {
-                                shape.fill(
-                                    RadialGradient(
-                                        stops: [
-                                            .init(color: PadTheme.padHitRadialCenter, location: 0.0),
-                                            .init(color: PadTheme.padHitRadialMid, location: 0.45),
-                                            .init(color: PadTheme.padHitRadialEdge, location: 1.0),
-                                        ],
-                                        center: UnitPoint(x: 0.5, y: 0.42),
-                                        startRadius: 0,
-                                        endRadius: maxDim * 0.70
-                                    )
-                                )
-                                .opacity(hitLiftOpacity)
-                            }
-                        }
-                    )
-                    // 9. Recipe A++ hit / held rim (on top of well when flashing)
-                    .overlay(
-                        Group {
-                            if t > PadHitLight.intensityEpsilon || isActive {
-                                shape.strokeBorder(rimColor, lineWidth: rimWidth)
-                            }
-                        }
-                    )
-                    .overlay(
-                        shape
-                            .strokeBorder(Color.white.opacity(innerRimOpacity), lineWidth: PadHitLight.innerStrokeWidth)
-                            .padding(PadHitLight.innerStrokeInset)
-                    )
-                    .clipShape(shape)
-                    // 10. Compact drop — `0 2px 5px @0.55` (beauty v2; no heavy float)
-                    .shadow(color: Color.black.opacity(0.55), radius: 2.5, x: 0, y: 2)
-
-                ForceTouchPadRepresentable(
-                    onDown: onDown,
-                    onUp: onUp
-                )
-            }
-            .frame(width: padWidth, height: padHeight)
-            // Allow halo into the gap, then clip so it does not smear onto neighbor faces.
-            .padding(expand)
-            .clipped()
-            .padding(-expand)
-            .scaleEffect(isActive ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.08), value: isActive)
-
-            // Silkscreen labels — `#8E8E98` / `#71717A`.
-            HStack(spacing: 4) {
-                Text(title)
-                    .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .medium, design: .rounded))
-                    .foregroundStyle(PadTheme.padLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-                Spacer(minLength: 2)
-                Text(subtitle)
-                    .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .regular, design: .rounded))
-                    .foregroundStyle(PadTheme.padLabelSub)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            .frame(width: padWidth, height: labelHeight, alignment: .top)
-            .allowsHitTesting(false)
+            padLabels
         }
+    }
+
+    // MARK: - Face stack (split so the type-checker finishes in reasonable time)
+
+    private var padFaceStack: some View {
+        ZStack {
+            outerHitHalo
+            beautyV2FaceWithHit
+            ForceTouchPadRepresentable(onDown: onDown, onUp: onUp)
+        }
+    }
+
+    /// Recipe A++ soft outer perimeter halo (behind face).
+    @ViewBuilder
+    private var outerHitHalo: some View {
+        if isFlashing {
+            shape
+                .stroke(
+                    PadHitLight.haloLilac.opacity(PadHitLight.haloLilacOpacity * Double(t)),
+                    lineWidth: PadHitLight.haloLilacSpread * 2
+                )
+                .blur(radius: PadHitLight.haloLilacBlur)
+                .allowsHitTesting(false)
+
+            shape
+                .stroke(
+                    Color.white.opacity(PadHitLight.haloWhiteOpacity * Double(t)),
+                    lineWidth: PadHitLight.haloWhiteSpread * 2
+                )
+                .blur(radius: PadHitLight.haloWhiteBlur)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// Beauty v2 idle materials + Recipe A++ hit overlays (same look as before; layered helpers).
+    private var beautyV2FaceWithHit: some View {
+        beautyV2IdleFace
+            .overlay(hitLiftOverlay)
+            .overlay(hitRimOverlay)
+            .overlay(innerHighlightOverlay)
+            .clipShape(shape)
+            .shadow(color: Color.black.opacity(0.55), radius: 2.5, x: 0, y: 2)
+    }
+
+    /// Idle: charcoal + purple halo ≈0.16 + sheen + wells (beauty v2 Must checklist).
+    private var beautyV2IdleFace: some View {
+        shape
+            .fill(PadTheme.padFace)
+            .overlay(idlePurpleHalo)
+            .overlay(idleSheen)
+            .overlay(idleTopBevel)
+            .overlay(idleBottomShade)
+            .overlay(shape.strokeBorder(PadTheme.padBorder, lineWidth: 1.0))
+            .overlay(shape.strokeBorder(PadTheme.padWell, lineWidth: 1.5))
+            .overlay(idleMicroRim)
+    }
+
+    private var idlePurpleHalo: some View {
+        shape.fill(
+            RadialGradient(
+                stops: [
+                    .init(color: PadTheme.padHalo, location: 0.0),
+                    .init(color: PadTheme.padHaloMid, location: 0.42),
+                    .init(color: Color.clear, location: 0.72),
+                ],
+                center: UnitPoint(x: 0.5, y: 0.40),
+                startRadius: 0,
+                endRadius: maxDim * 0.55
+            )
+        )
+    }
+
+    private var idleSheen: some View {
+        shape
+            .fill(
+                LinearGradient(
+                    stops: [
+                        .init(color: Color.white.opacity(0.055), location: 0.0),
+                        .init(color: Color.white.opacity(0.01), location: 0.28),
+                        .init(color: Color.black.opacity(0.35), location: 1.0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .opacity(sheenOpacity)
+    }
+
+    private var idleTopBevel: some View {
+        shape
+            .stroke(Color.white.opacity(0.07), lineWidth: 1.0)
+            .offset(y: 0.5)
+            .blur(radius: 0.3)
+            .mask(
+                shape.fill(
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .top,
+                        endPoint: UnitPoint(x: 0.5, y: 0.22)
+                    )
+                )
+            )
+    }
+
+    private var idleBottomShade: some View {
+        shape
+            .stroke(Color.black.opacity(0.72), lineWidth: 3.0)
+            .offset(y: -1.5)
+            .blur(radius: 1.5)
+            .mask(
+                shape.fill(
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .bottom,
+                        endPoint: UnitPoint(x: 0.5, y: 0.68)
+                    )
+                )
+            )
+    }
+
+    private var idleMicroRim: some View {
+        shape
+            .stroke(Color.white.opacity(0.04), lineWidth: 1.0)
+            .offset(y: 1.0)
+            .mask(
+                shape.fill(
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .top,
+                        endPoint: UnitPoint(x: 0.5, y: 0.35)
+                    )
+                )
+            )
+    }
+
+    /// Recipe A++ lilac/white face lift (charcoal → lilac peak).
+    @ViewBuilder
+    private var hitLiftOverlay: some View {
+        if isFlashing {
+            shape
+                .fill(
+                    RadialGradient(
+                        stops: [
+                            .init(color: PadTheme.padHitRadialCenter, location: 0.0),
+                            .init(color: PadTheme.padHitRadialMid, location: 0.45),
+                            .init(color: PadTheme.padHitRadialEdge, location: 1.0),
+                        ],
+                        center: UnitPoint(x: 0.5, y: 0.42),
+                        startRadius: 0,
+                        endRadius: maxDim * 0.70
+                    )
+                )
+                .opacity(hitLiftOpacity)
+        }
+    }
+
+    /// Recipe A++ hit / held outer rim (white ~3pt at peak).
+    @ViewBuilder
+    private var hitRimOverlay: some View {
+        if showHitRim {
+            shape.strokeBorder(rimColor, lineWidth: rimWidth)
+        }
+    }
+
+    /// Recipe A++ inset white highlight α≈0.55 at peak.
+    private var innerHighlightOverlay: some View {
+        shape
+            .strokeBorder(Color.white.opacity(innerRimOpacity), lineWidth: PadHitLight.innerStrokeWidth)
+            .padding(PadHitLight.innerStrokeInset)
+    }
+
+    /// Silkscreen labels — `#8E8E98` / `#71717A`.
+    private var padLabels: some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .medium, design: .rounded))
+                .foregroundStyle(PadTheme.padLabel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+            Spacer(minLength: 2)
+            Text(subtitle)
+                .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .regular, design: .rounded))
+                .foregroundStyle(PadTheme.padLabelSub)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .frame(width: padWidth, height: labelHeight, alignment: .top)
+        .allowsHitTesting(false)
     }
 }
 
