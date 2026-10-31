@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Preview-mock knobs: dark cap + thin white ring (no purple progress arc) + white tip.
+/// Mid value 0.5 → indicator at 6 o'clock (into the bottom ring gap).
 struct KnobView: View {
     let index: Int
     @Binding var value: Float
@@ -10,9 +11,10 @@ struct KnobView: View {
 
     @State private var dragStart: Float = 0
 
-    /// Value maps across ~270° with a bottom gap (mock ring break near 6 o'clock).
+    /// Value maps across ~270° with a bottom ring gap; mid (0.5) points at 6 o'clock.
+    /// Pill rests at 12 o'clock before rotation — add 180° so rest/mid reads downward.
     private var angle: Double {
-        Double(value) * 270 - 135
+        Double(value) * 270 - 135 + 180
     }
 
     var body: some View {
