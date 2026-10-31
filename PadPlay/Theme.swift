@@ -36,37 +36,39 @@ enum PadTheme {
     static let padAspect: CGFloat = 1.384
 }
 
-/// Pad strike rim flash — rim-first (MPC / Launchpad style).
-/// Colors/timing aligned with `Docs/PAD-HIT-LIGHT.md` + research: eye cue is bright rim,
-/// fill only a slight lift. No outer bloom / large shadowRadius.
+/// Pad strike rim flash — PAD-HIT-LIGHT **v2.1 Recipe A+** (install default).
+/// Eye cue is bright rim; fill only a slight lift. No outer bloom / large shadowRadius.
 /// Animate via published flash intensity 0…1 (exponential decay). Easy to retune here.
 enum PadHitLight {
     // MARK: Fill (secondary — slight lift only)
 
     /// Idle — #CB85F3.
     static let idleFill = PadTheme.padFill
-    /// Peak fill nudge — slight lift only (not whole-pad bleach).
-    static let hitFill = Color(red: 210 / 255, green: 160 / 255, blue: 244 / 255) // #D2A0F4
-    /// Held fill while finger down — #E8C8FC (PAD-HIT-LIGHT).
-    static let heldFill = Color(red: 232 / 255, green: 200 / 255, blue: 252 / 255)
+    /// Hit peak fill nudge — #D2A0F4.
+    static let hitFill = Color(red: 210 / 255, green: 160 / 255, blue: 244 / 255)
+    /// Held fill (finger only) — #D0A0F3.
+    static let heldFill = Color(red: 208 / 255, green: 160 / 255, blue: 243 / 255)
 
-    // MARK: Stroke / rim (primary)
+    // MARK: Stroke / rim (primary) — Recipe A+
 
-    /// Idle thin stroke — #B15EEC.
+    /// Idle thin stroke — #B15EEC 1.5pt.
     static let idleStroke = PadTheme.padEdge
-    /// Hit thick near-white stroke.
-    static let hitStroke = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255) // #F5E8FF
-    /// Held edge — #D9A8F5.
-    static let heldStroke = Color(red: 217 / 255, green: 168 / 255, blue: 245 / 255)
+    /// Hit peak outer stroke — pure #FFFFFF 3.0pt.
+    static let hitStroke = Color.white
+    /// Held outer stroke — #F5E8FF ~2.5pt.
+    static let heldStroke = Color(red: 245 / 255, green: 232 / 255, blue: 255 / 255)
 
     static let idleStrokeWidth: CGFloat = 1.5
     static let hitStrokeWidth: CGFloat = 3.0
-    static let heldStrokeWidth: CGFloat = 2.25
+    static let heldStrokeWidth: CGFloat = 2.5
 
-    /// Optional inner white stroke at peak (α ≈ 0.35).
-    static let innerHighlightOpacity: Double = 0.35
-    static let innerStrokeWidth: CGFloat = 1.5
-    static let innerStrokeInset: CGFloat = 1.75
+    /// Inset white ring at hit peak (α ≈ 0.55).
+    static let innerHighlightOpacity: Double = 0.55
+    /// Inset white ring while held (α ≈ 0.35).
+    static let heldInnerHighlightOpacity: Double = 0.35
+    /// Inset ring stroke ~1.75pt, clipped inside pad.
+    static let innerStrokeWidth: CGFloat = 1.75
+    static let innerStrokeInset: CGFloat = 2.0
 
     // MARK: Intensity / timing
 

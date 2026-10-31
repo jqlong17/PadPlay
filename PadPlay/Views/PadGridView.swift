@@ -128,29 +128,37 @@ struct ForcePadCell: View {
         return raw
     }
 
+    /// Settled held look (finger down after peak) vs peak / decay toward idle.
+    private var useHeldLook: Bool {
+        isActive && flash <= PadHitLight.heldIntensity + 0.02
+    }
+
     private var faceFill: Color {
-        // Slight fill lift only — rim is the eye cue.
-        PadHitLight.mix(PadHitLight.idleFill, PadHitLight.hitFill, t)
+        if useHeldLook { return PadHitLight.heldFill }
+        return PadHitLight.mix(PadHitLight.idleFill, PadHitLight.hitFill, t)
     }
 
     private var rimColor: Color {
-        PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
+        if useHeldLook { return PadHitLight.heldStroke }
+        return PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
     }
 
     private var rimWidth: CGFloat {
-        PadHitLight.idleStrokeWidth
+        if useHeldLook { return PadHitLight.heldStrokeWidth }
+        return PadHitLight.idleStrokeWidth
             + (PadHitLight.hitStrokeWidth - PadHitLight.idleStrokeWidth) * t
     }
 
     private var innerRimOpacity: Double {
-        PadHitLight.innerHighlightOpacity * Double(t)
+        if useHeldLook { return PadHitLight.heldInnerHighlightOpacity }
+        return PadHitLight.innerHighlightOpacity * Double(t)
     }
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             ZStack {
-                // Rim-first: thin idle stroke → thick near-white + optional inner white α.
-                // Fill only slight lift. Clipped inside pad — no outer bloom / shadowRadius.
+                // Recipe A+: outer #FFFFFF 3pt + inset white α0.55; fill slight lift only.
+                // Clipped inside pad — no outer bloom / shadowRadius.
                 let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
                 shape
                     .fill(faceFill)

@@ -1,43 +1,43 @@
-# Pad 激发光效（播放 / 循环 / 录制）
+# Pad 激发光效 v2.1（播放 / 循环 / 录制）
 
-目标：循环或播放时，图案里每个 note-on 对应垫**边缘**闪一下；手指点垫同样。硬件打击垫标配反馈。
+> Recipe **A+** — 装机默认。原则：**边缘先亮**（rim-first），不是整块紫霓虹或近白闪屏。
 
-眼部线索是 **亮边 / 环**（rim-first），不是整垫漂白。禁止垫外大面积 bloom / 大半径 shadow。
+目标：循环或播放时，图案里每个 note-on 让对应垫**边缘亮一下**；手指点垫同样。
 
 ## 触发源（同一套视觉）
 1. 手指按下垫
 2. 走带播放 / 循环时 sequencer 打到该垫
 3. 录制中手指按下（与 1 相同；录制中不要另起红色垫面）
 
-## 视觉（只动垫面，不动左栏）
+回放与指点**共用**同一 flash。
 
-软紫底上可读的描边模式：
-1. idle：细彩色描边 `#B15EEC` ~1.5pt，填色 `#CB85F3`
-2. hit：粗近白描边 `#F5E8FF` ~3pt
-3. 可选内描边：白 α≈0.35，贴在垫内
-4. 填色只轻微上抬（`#D2A0F4`），不要整垫近白
+## 视觉重点：Recipe A+（rim + inset）
 
-| 状态 | 填色 | 边 | 说明 |
-|------|------|-----|------|
-| idle | `#CB85F3` | `#B15EEC` 1.5pt | 现基线 |
-| hit peak | `#D2A0F4`（轻抬） | `#F5E8FF` ~3pt + 内白 α~0.35 | 主体是 rim |
-| held | `#E8C8FC` | `#D9A8F5` ~2.25pt | 指尖按住；强度标量落在 held floor |
+| 状态 | 垫面填色 | 边缘 | 说明 |
+|------|----------|------|------|
+| idle | `#CB85F3` | `#B15EEC`，**1.5pt** | 现基线，无外晕 |
+| hit peak | 微提 **`#D2A0F4`** | **外描边 `#FFFFFF`，3.0pt** + **inset 白环 α ≈ 0.55**（~1.75pt，~2pt inset，clip 在垫内） | 主体是 rim |
+| held（仅指尖按住） | `#D0A0F3` | 外边 ~2.5pt `#F5E8FF`；inset α ~0.35 | 松手 Decay |
+| playback note | 同 hit peak | 同 hit peak | **one-shot**：无 held，peak → Decay |
 
-实现：发布每垫 flash 强度 **0…1**；retrigger 重置为 1；`intensity *= exp(-dt * k)` 指数衰减（约 100–300ms 读感）。动画主驱动是 **stroke 线宽 + 颜色**。
+实现：每垫 flash 强度 **0…1**；retrigger → 1；`intensity *= exp(-dt * k)` 指数衰减。动画主驱动是 **stroke 线宽 + 颜色**。填色次要。
 
-禁止：垫外紫外光晕、整屏闪、改左栏旋钮/圆钮颜色。
+### 禁止
+- 垫外大面积紫外 bloom / 大半径外扩 `shadow`
+- 整垫近白 whiteout、整屏闪
+- 左栏旋钮/走带跟着闪
 
 ## 时序
-- Attack：retrigger → intensity = 1（约 90–120ms 内边先亮）
-- Decay：指数落到 idle，**~220–300ms**（播放 one-shot；不要卡住 peak）
-- Held：按住维持 held floor；松手继续 Decay
-- 同一垫短间隔连击：retrigger 打断 Decay，强度回到 1
+- Attack：0 → peak，**~100ms**（允许 90–120），easeOut（**边先到**）
+- Decay：peak → idle，**~250ms**（允许 220–300），easeOut
+- Held：仅手指按住维持 held；松手 Decay
+- Playback：每个 note-on 一次 Attack→Decay，无 held
+- 连击：retrigger — 打断 Decay，立刻再 Attack
 
-## 循环播放要点
-- 每个 step 的 note-on 都闪一次；velocity 可把 peak 乘 0.7–1.0（可选，P1）
-- Loop 开着时与 Play 相同逻辑
-- 停 / 停录：立刻回 idle，不要留亮垫
+## 循环播放
+- 每个 note-on 闪边一次；停 / 停录立刻回 idle
 
 ## 验收
-- 开 Loop 放一段：亮的**边**与听感同步，肉眼能跟到节奏
-- 静音时只看画面也能判断哪几格在响
+- 开 Loop：肉眼跟到的是**哪颗垫的边在跳**，不是整块变白
+- 指点与回放观感一致
+- 无垫外紫晕、无左栏误闪
