@@ -1,5 +1,8 @@
 # VISUAL-P0-swiftui.md
 
+> **Superseded for face materials:** beauty v2 (`Docs/BEAUTY-v2.md`, `Docs/patch-beauty-v2.css`) replaces P0/v1 pad candy radial, knob outer bloom, and round-button outer purple fog.  
+> Keep this file for structural SwiftUI patterns (trim arcs, inset masks, geometry locks). Hit flash remains Recipe A++ (`Docs/PAD-HIT-LIGHT.md`).
+
 ## 1. P0 色值表
 
 | 名称 | hex / opacity | 用途 |

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// VISUAL-P0 LED cavity — idle deep well / activePurple / activeRollRed (连击 = red).
-/// Layout token `--btn-d` 56 stays in `LeftChromeMetrics` (passed as `diameter`).
+/// Beauty v2 round buttons — idle Well + micro-convex; selected = inset light-guide only.
+/// Zero outer purple / red fog. Layout token `--btn-d` 56 stays in `LeftChromeMetrics`.
 enum RoundButtonLEDState {
     case idle
     case activePurple
@@ -36,53 +36,45 @@ struct RoundButtonView: View {
         return max(10, size * (long ? 0.18 : 0.20))
     }
 
-    /// 连击 / record use red LED when selected; other actives use purple.
+    /// 连击 / record use red inset guide when selected; other actives use purple guide.
     private var ledState: RoundButtonLEDState {
         guard isActive else { return .idle }
         if let accent, accent == PadTheme.accentRed { return .activeRollRed }
         return .activePurple
     }
 
+    private var isDangerIdle: Bool {
+        !isActive && accent == PadTheme.accentRed
+    }
+
     private var bgColor: Color {
         switch ledState {
-        case .idle: return Color(hex: 0x161618)
-        case .activePurple: return Color(hex: 0xA855F7, alpha: 0.18)
-        case .activeRollRed: return Color(hex: 0xEF4444, alpha: 0.18)
+        case .idle: return PadTheme.roundButtonFace
+        case .activePurple: return PadTheme.roundButtonFaceActive
+        case .activeRollRed: return PadTheme.roundButtonFaceDangerActive
         }
-    }
-
-    private var strokeColor: Color {
-        switch ledState {
-        case .idle: return Color.white.opacity(0.06)
-        case .activePurple: return Color(hex: 0xC084FC)
-        case .activeRollRed: return Color(hex: 0xF87171)
-        }
-    }
-
-    private var strokeWidth: CGFloat {
-        ledState == .idle ? 1.0 : 1.5
     }
 
     private var fgColor: Color {
         switch ledState {
         case .idle:
-            // Mock baseline: 连击 label + record dot stay red in the idle deep well.
-            if let accent, accent == PadTheme.accentRed {
-                return PadTheme.accentRed
+            // Beauty v2: danger idle silkscreen-ish red `#D9534F` quieter.
+            if isDangerIdle {
+                return PadTheme.accentRed.opacity(0.85)
             }
-            return Color.white.opacity(0.75)
+            return PadTheme.chromeCaption
         case .activePurple:
-            return Color(hex: 0xF3E8FF)
+            return PadTheme.chromeCaptionActive
         case .activeRollRed:
             return Color(hex: 0xFECACA)
         }
     }
 
-    private var innerGlowColor: Color {
+    /// Icon opacity — idle muted; active near full.
+    private var iconOpacity: Double {
         switch ledState {
-        case .idle: return .clear
-        case .activePurple: return Color(hex: 0xA855F7, alpha: 0.35)
-        case .activeRollRed: return Color(hex: 0xEF4444, alpha: 0.35)
+        case .idle: return isDangerIdle ? 0.85 : 0.50
+        case .activePurple, .activeRollRed: return 0.95
         }
     }
 
@@ -94,40 +86,87 @@ struct RoundButtonView: View {
                     Circle()
                         .fill(bgColor)
 
-                    // 2. Inner cavity — idle inset shadow; active LED glow
+                    // 2. Idle micro-convex + well; active inset light-guide + inset glow.
+                    // Must 4: selected = inset `#8F5BFF` / danger `#D9534F`; outer fog = 0.
                     if ledState == .idle {
+                        // Top micro highlight
                         Circle()
-                            .stroke(Color.black.opacity(0.70), lineWidth: 4)
-                            .blur(radius: 2)
-                            .offset(y: 2)
-                            .mask(Circle())
+                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            .offset(y: 0.5)
+                            .blur(radius: 0.3)
+                            .mask(
+                                Circle().fill(
+                                    LinearGradient(
+                                        colors: [.black, .clear],
+                                        startPoint: .top,
+                                        endPoint: UnitPoint(x: 0.5, y: 0.45)
+                                    )
+                                )
+                            )
+                        // Bottom inset shade
+                        Circle()
+                            .stroke(Color.black.opacity(0.55), lineWidth: 2)
+                            .blur(radius: 1)
+                            .offset(y: -0.5)
+                            .mask(
+                                Circle().fill(
+                                    LinearGradient(
+                                        colors: [.black, .clear],
+                                        startPoint: .bottom,
+                                        endPoint: UnitPoint(x: 0.5, y: 0.55)
+                                    )
+                                )
+                            )
+                        // Idle border + Well ring
+                        Circle()
+                            .strokeBorder(
+                                isDangerIdle
+                                    ? PadTheme.accentRed.opacity(0.18)
+                                    : PadTheme.roundButtonIdleRing,
+                                lineWidth: 1.0
+                            )
+                        Circle()
+                            .strokeBorder(PadTheme.wellRing, lineWidth: 1.5)
                     } else {
+                        // Inset glow contained inside face (α≈0.25 / 0.28) — no outer fog.
+                        let guide = ledState == .activeRollRed
+                            ? PadTheme.roundButtonGuideRed
+                            : PadTheme.roundButtonGuidePurple
+                        let glowAlpha: Double = ledState == .activeRollRed ? 0.28 : 0.25
                         Circle()
-                            .stroke(innerGlowColor, lineWidth: 6)
-                            .blur(radius: 4)
+                            .fill(guide.opacity(glowAlpha))
+                            .blur(radius: 5)
+                            .padding(4)
                             .mask(Circle())
+                        // Well ring (outer) + inset light-guide ring
+                        Circle()
+                            .strokeBorder(PadTheme.wellRing, lineWidth: 1.5)
+                        Circle()
+                            .strokeBorder(guide, lineWidth: 1.5)
+                            .padding(1.5)
                     }
 
-                    // 3. Outer stroke (no cheap white active ring)
-                    Circle()
-                        .strokeBorder(strokeColor, lineWidth: strokeWidth)
-
-                    // 4. Label / icon
-                    if let systemImage {
-                        Image(systemName: systemImage)
-                            .font(.system(size: iconFont, weight: .semibold))
-                            .foregroundStyle(fgColor)
-                    } else if let title {
-                        Text(title)
-                            .font(.system(size: titleFont, weight: .semibold, design: .rounded))
-                            .foregroundStyle(fgColor)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.65)
-                            .padding(max(4, size * 0.08))
+                    // 3. Label / icon
+                    Group {
+                        if let systemImage {
+                            Image(systemName: systemImage)
+                                .font(.system(size: iconFont, weight: .semibold))
+                                .foregroundStyle(fgColor)
+                        } else if let title {
+                            Text(title)
+                                .font(.system(size: titleFont, weight: .medium, design: .rounded))
+                                .foregroundStyle(fgColor)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.65)
+                                .padding(max(4, size * 0.08))
+                        }
                     }
+                    .opacity(iconOpacity)
                 }
                 .frame(width: size, height: size)
+                // Compact drop only — no purple/red outer bloom.
+                .shadow(color: Color.black.opacity(0.60), radius: 1.5, x: 0, y: 2)
 
                 if let caption {
                     Text(caption)
@@ -177,7 +216,7 @@ struct LabeledRoundButton: View {
 }
 
 #if DEBUG
-#Preview("RoundButton P0 LED") {
+#Preview("RoundButton beauty v2") {
     HStack(spacing: 16) {
         RoundButtonView(title: "鼓组", systemImage: nil, isActive: false, diameter: 56, action: {})
         RoundButtonView(title: "节拍器", systemImage: nil, isActive: true, diameter: 56, action: {})
@@ -202,6 +241,13 @@ struct LabeledRoundButton: View {
             systemImage: "circle.fill",
             accent: PadTheme.accentRed,
             isActive: false,
+            diameter: 56,
+            action: {}
+        )
+        RoundButtonView(
+            title: nil,
+            systemImage: "repeat",
+            isActive: true,
             diameter: 56,
             action: {}
         )

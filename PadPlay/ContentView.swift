@@ -23,7 +23,8 @@ struct ContentView: View {
     }
 
     private var background: some View {
-        PadTheme.chassis
+        // Outer window behind the device chassis — match deepest chassis band.
+        PadTheme.chassisBottom
     }
 
     /// LEFT compact chrome | RIGHT 4×4 pad stage; gear overlays chassis top-trailing.
@@ -120,7 +121,7 @@ struct ContentView: View {
             .frame(width: width, height: height, alignment: .top)
     }
 
-    /// Quiet gear — ⌀34, faint stroke rgba(255,255,255,0.18), near-transparent fill.
+    /// Quiet gear — ⌀34, beauty v2 silkscreen + Well (no neon).
     /// Sheet / popover anchors from this chassis top-right control.
     private func settingsGearButton(diameter: CGFloat) -> some View {
         Button {
@@ -128,15 +129,19 @@ struct ContentView: View {
         } label: {
             Image(systemName: "gearshape.fill")
                 .font(.system(size: max(12, diameter * 0.44), weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.65))
+                .foregroundStyle(PadTheme.chromeCaption.opacity(0.65))
                 .frame(width: diameter, height: diameter)
                 .background(
                     Circle()
-                        .fill(Color.white.opacity(0.03))
+                        .fill(Color.white.opacity(0.02))
                 )
                 .overlay(
                     Circle()
-                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(PadTheme.wellRing, lineWidth: 1.5)
                 )
         }
         .buttonStyle(.plain)
@@ -155,14 +160,33 @@ struct ContentView: View {
     }
 
     private func deviceChassis<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(PadTheme.chassis)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        return ZStack {
+            // Beauty v2 chassis: `#121214 → #0E0E11 → #0A0A0C` + stronger vignette.
+            shape
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: PadTheme.chassisTop, location: 0.0),
+                            .init(color: PadTheme.chassisMid, location: 0.55),
+                            .init(color: PadTheme.chassisBottom, location: 1.0),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-                .shadow(color: .black.opacity(0.45), radius: 14, y: 6)
+                .overlay(
+                    // Stronger vignette — CSS `inset 0 0 100px rgba(0,0,0,0.55)`.
+                    shape
+                        .stroke(Color.black.opacity(0.55), lineWidth: 80)
+                        .blur(radius: 50)
+                        .mask(shape)
+                        .allowsHitTesting(false)
+                )
+                .overlay(
+                    shape.stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.55), radius: 14, y: 6)
 
             content()
         }

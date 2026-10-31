@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Hardware-inspired left cluster — vision A / C locked metrics.
+/// Hardware-inspired left cluster — vision A / C locked metrics (geometry frozen).
 /// Brand + status above; knobs 2×2 → function 2×3 → transport 2×3 on shared face-top axis.
 /// Top-aligned fixed section gaps (no space-between). Settings gear lives on chassis top-right.
-/// Language lives in Settings sheet (ZH default). No purple neon on chrome.
+/// Language lives in Settings sheet (ZH default). Materials: beauty v2 (no outer purple fog).
 struct ControlClusterView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var engine: DrumEngine
@@ -129,12 +129,12 @@ struct ControlClusterView: View {
             HStack(spacing: 6) {
                 Text(settings.tf("status.bpm", Int(engine.bpm.rounded())))
                     .font(.system(size: m.statusSize, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color(white: 119.0 / 255.0))
+                    .foregroundStyle(PadTheme.status)
                 Text("·")
-                    .foregroundStyle(Color(white: 119.0 / 255.0).opacity(0.7))
+                    .foregroundStyle(PadTheme.status.opacity(0.7))
                 Text(settings.tf("status.kit", settings.t(controller.padBank.titleKey)))
                     .font(.system(size: m.statusSize, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color(white: 119.0 / 255.0))
+                    .foregroundStyle(PadTheme.status)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
