@@ -48,6 +48,12 @@ final class DrumEngine: ObservableObject {
     private var transportTimer: Timer?
     private var lastPlayedKeys = Set<String>()
 
+    /// Fired on MainActor for every sequencer note-on (Play/Loop). PadController
+    /// binds this to `flashPad(id:)` so playback shares the finger hit-light path.
+    var onPadTriggered: ((Int) -> Void)?
+    /// Fired when transport fully stops (Stop / end of play toggle-off).
+    var onTransportStopped: (() -> Void)?
+
     init() {
         configureSession()
         configureGraph()
@@ -156,6 +162,7 @@ final class DrumEngine: ObservableObject {
         playbackStartDate = nil
         beatIndex = 0
         lastPlayedKeys.removeAll()
+        onTransportStopped?()
     }
 
     func startTransport() {
@@ -382,6 +389,8 @@ final class DrumEngine: ObservableObject {
                 if let pad = bank.pads.first(where: { $0.id == event.pad }) {
                     play(sampleName: pad.sampleName, velocity: event.velocity)
                 }
+                // Light by pad id on the current grid (bank mismatch still flashes that id).
+                onPadTriggered?(event.pad)
             }
         }
         if beat < 0.05 { lastPlayedKeys.removeAll() }

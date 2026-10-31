@@ -27,7 +27,7 @@ struct PadGridView: View {
                                     labelHeight: layout.labelH,
                                     title: settings.t(pad.nameKey),
                                     subtitle: settings.t(pad.categoryKey),
-                                    isLit: controller.litPads.contains(pad.id),
+                                    flash: controller.flashIntensity(for: pad.id),
                                     isActive: controller.activePads.contains(pad.id),
                                     onDown: { force in
                                         controller.padTouchDown(pad: pad, force: force)
@@ -111,7 +111,8 @@ struct ForcePadCell: View {
     let labelHeight: CGFloat
     let title: String
     let subtitle: String
-    let isLit: Bool
+    /// Strike intensity 0…1 from shared flashPad path (finger + Play/Loop).
+    let flash: CGFloat
     let isActive: Bool
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
@@ -119,18 +120,57 @@ struct ForcePadCell: View {
     private var shortSide: CGFloat { min(padWidth, padHeight) }
     /// Hard-edge rounded square — 8–12% of short side (mock).
     private var corner: CGFloat { shortSide * 0.10 }
-    private var bright: Bool { isLit || isActive }
+
+    /// 0…1 flash amount; held finger uses at least the held floor while down.
+    private var t: CGFloat {
+        let raw = min(1, max(0, flash))
+        if isActive { return max(raw, PadHitLight.heldIntensity) }
+        return raw
+    }
+
+    /// Settled held look (finger down after peak) vs peak / decay toward idle.
+    private var useHeldLook: Bool {
+        isActive && flash <= PadHitLight.heldIntensity + 0.02
+    }
+
+    private var faceFill: Color {
+        if useHeldLook { return PadHitLight.heldFill }
+        return PadHitLight.mix(PadHitLight.idleFill, PadHitLight.hitFill, t)
+    }
+
+    private var rimColor: Color {
+        if useHeldLook { return PadHitLight.heldStroke }
+        return PadHitLight.mix(PadHitLight.idleStroke, PadHitLight.hitStroke, t)
+    }
+
+    private var rimWidth: CGFloat {
+        if useHeldLook { return PadHitLight.heldStrokeWidth }
+        return PadHitLight.idleStrokeWidth
+            + (PadHitLight.hitStrokeWidth - PadHitLight.idleStrokeWidth) * t
+    }
+
+    private var innerRimOpacity: Double {
+        if useHeldLook { return PadHitLight.heldInnerHighlightOpacity }
+        return PadHitLight.innerHighlightOpacity * Double(t)
+    }
 
     var body: some View {
         VStack(spacing: max(2, padHeight * 0.04)) {
             ZStack {
-                // Flat uniform fill; optional hairline edge — no silicone radial / sheen / glow.
-                RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .fill(bright ? PadTheme.padHit : PadTheme.padFill)
+                // Recipe A+: outer #FFFFFF 3pt + inset white α0.55; fill slight lift only.
+                // Clipped inside pad — no outer bloom / shadowRadius.
+                let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
+                shape
+                    .fill(faceFill)
                     .overlay(
-                        RoundedRectangle(cornerRadius: corner, style: .continuous)
-                            .stroke(PadTheme.padEdge.opacity(bright ? 0.55 : 0.35), lineWidth: 1)
+                        shape.strokeBorder(rimColor, lineWidth: rimWidth)
                     )
+                    .overlay(
+                        shape
+                            .strokeBorder(Color.white.opacity(innerRimOpacity), lineWidth: PadHitLight.innerStrokeWidth)
+                            .padding(PadHitLight.innerStrokeInset)
+                    )
+                    .clipShape(shape)
 
                 ForceTouchPadRepresentable(
                     onDown: onDown,
@@ -139,6 +179,7 @@ struct ForcePadCell: View {
             }
             .frame(width: padWidth, height: padHeight)
             .scaleEffect(isActive ? 0.97 : 1)
+            // Decay is driven by published flash intensity (exp decay ticker) — no extra withAnimation.
             .animation(.easeOut(duration: 0.08), value: isActive)
 
             // Beginner drum name under the pad (mock position) — never swing/octave pro copy.
@@ -179,6 +220,33 @@ struct ForceTouchPadRepresentable: UIViewRepresentable {
         uiView.onUp = onUp
     }
 }
+
+#if DEBUG
+/// Tiny harness: idle / peak / held flash intensities (rim-first).
+#Preview("Pad hit light phases") {
+    HStack(spacing: 16) {
+        ForEach([(CGFloat(0), false, "idle"), (1.0, false, "peak"), (0.55, true, "held")], id: \.2) { flash, active, label in
+            VStack(spacing: 8) {
+                ForcePadCell(
+                    pad: PadInfo(id: 1, sampleName: "kick", nameKey: "pad.kick", categoryKey: "cat.kick"),
+                    padWidth: 120,
+                    padHeight: 86,
+                    labelHeight: 16,
+                    title: label,
+                    subtitle: "rim",
+                    flash: flash,
+                    isActive: active,
+                    onDown: { _ in },
+                    onUp: {}
+                )
+                Text(label).font(.caption).foregroundStyle(.white.opacity(0.7))
+            }
+        }
+    }
+    .padding(24)
+    .background(PadTheme.chassis)
+}
+#endif
 
 /// Transparent hit target — visual chrome lives in SwiftUI.
 final class PadTouchView: UIView {
