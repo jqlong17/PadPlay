@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Preview-mock knobs: dark cap + thin white ring (no purple progress arc) + white tip.
+/// Vision A knobs: recessed inset ring + white rim + white tip.
 /// Mid value 0.5 → indicator at 6 o'clock (into the bottom ring gap).
+/// CSS: inset 0 0 0 ~9px dark + light top inset; diameter `--knob-d` 84.
 struct KnobView: View {
     let index: Int
     @Binding var value: Float
@@ -20,61 +21,93 @@ struct KnobView: View {
     var body: some View {
         if let diameter {
             knobColumn(outer: diameter)
-                .frame(width: diameter + 4)
+                .frame(width: diameter)
         } else {
             GeometryReader { geo in
-                let outer = min(64, max(44, geo.size.width * 0.7))
+                let outer = min(84, max(52, geo.size.width * 0.85))
                 knobColumn(outer: outer)
                     .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             }
-            .frame(minHeight: 72)
+            .frame(minHeight: 96)
             .aspectRatio(0.95, contentMode: .fit)
         }
     }
 
     private func knobColumn(outer: CGFloat) -> some View {
-        let cap = outer * 0.78
-        return VStack(spacing: 4) {
+        // Inner cap sits inside the ~9pt recessed ring band.
+        let recess: CGFloat = max(7, outer * (9.0 / 84.0))
+        let cap = max(28, outer - recess * 2 - 2)
+        return VStack(spacing: 6) {
             ZStack {
-                // Recessed well
+                // Face + outer white rim
                 Circle()
-                    .fill(Color.black.opacity(0.45))
-                    .frame(width: outer + 4, height: outer + 4)
-
-                // Thin white ring with micro gap at bottom — no purple arc.
-                KnobWhiteRing(gapDegrees: 28)
-                    .stroke(Color.white.opacity(0.92), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 56 / 255, green: 56 / 255, blue: 60 / 255),
+                                Color(red: 30 / 255, green: 30 / 255, blue: 34 / 255),
+                            ],
+                            center: UnitPoint(x: 0.5, y: 0.35),
+                            startRadius: 1,
+                            endRadius: outer * 0.55
+                        )
+                    )
                     .frame(width: outer, height: outer)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
+                    )
+                    // Recessed dark band — CSS `inset 0 0 0 9px #0f0f12`
+                    .overlay(
+                        Circle()
+                            .strokeBorder(PadTheme.recessDark, lineWidth: recess)
+                    )
+                    // Light top inset — CSS `inset 0 10px 2px rgba(255,255,255,0.12)`
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.18),
+                                        Color.white.opacity(0.04),
+                                        Color.clear,
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                ),
+                                lineWidth: 2
+                            )
+                            .padding(recess * 0.15)
+                            .blur(radius: 0.4)
+                    )
+                    .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
 
+                // Inner rotating cap + indicator
                 ZStack {
                     Circle()
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    PadTheme.metalHighlight.opacity(0.85),
+                                    PadTheme.metalHighlight.opacity(0.9),
                                     PadTheme.metal,
                                     PadTheme.knobCap,
                                 ],
-                                center: UnitPoint(x: 0.35, y: 0.3),
+                                center: UnitPoint(x: 0.5, y: 0.32),
                                 startRadius: 1,
-                                endRadius: cap * 0.7
+                                endRadius: cap * 0.72
                             )
                         )
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
 
-                    // Short white pill indicator on the cap face
+                    // Short white pill — mid rests near 6 o'clock on the inner cap.
                     Capsule()
                         .fill(Color.white.opacity(0.95))
-                        .frame(width: max(3, cap * 0.08), height: max(8, cap * 0.22))
+                        .frame(width: max(3, cap * 0.07), height: max(7, cap * 0.18))
                         .offset(y: -cap * 0.28)
                         .rotationEffect(.degrees(angle))
                 }
                 .frame(width: cap, height: cap)
             }
+            .frame(width: outer, height: outer)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { g in
@@ -86,29 +119,11 @@ struct KnobView: View {
             .accessibilityLabel(title.isEmpty ? "Knob \(index + 1)" : title)
 
             Text(title.isEmpty ? "\(index + 1)" : title)
-                .font(.system(size: max(9, min(12, outer * 0.15)), weight: .medium, design: .rounded))
-                .foregroundStyle(PadTheme.dimLabel)
+                .font(.system(size: max(11, min(13, outer * 0.155)), weight: .semibold, design: .rounded))
+                .foregroundStyle(PadTheme.chromeCaption)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(width: outer + 8)
+                .frame(width: outer + 4)
         }
-    }
-}
-
-/// Nearly-full circle with a small open gap centered at the bottom (6 o'clock).
-private struct KnobWhiteRing: Shape {
-    var gapDegrees: Double
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let radius = min(rect.width, rect.height) / 2
-        // SwiftUI angles: 0° = right; clockwise with trimmed Circle uses different API —
-        // use Path addArc: 90° is bottom in UIKit coords (y down).
-        let gap = gapDegrees * .pi / 180
-        let start = (.pi / 2) + gap / 2
-        let end = (.pi / 2) + (2 * .pi) - gap / 2
-        path.addArc(center: center, radius: radius, startAngle: .radians(start), endAngle: .radians(end), clockwise: false)
-        return path
     }
 }

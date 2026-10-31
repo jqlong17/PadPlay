@@ -1,0 +1,258 @@
+/* ========== PadPlay vision patch A — drop into <style> (replace matching rules) ========== */
+/* Keep chassis 1180×820 viewport; left ~340; gear top-right; Chinese copy unchanged. */
+
+:root {
+  --bg: #1F1F21;
+  --gap: #1C1C1E;
+  --ink: #FFFFFF;
+  --ink-muted: #8E8E93;
+  --ink-danger: #FF3B30;
+  --pad-fill: #CB85F3;
+  --pad-edge: #9B3FE0;
+  --scale: 1;
+  --left-w: 340px;
+  /* 3-col island: 56*3 + 16*2 = 200; knobs outer: 84*2 + 32 = 200 */
+  --cluster-w: 200px;
+  --title-size: 22px;
+  --status-size: 12px;
+  --brand-bottom: 20px;
+  --knob-d: 84px;
+  --knob-col: 32px;
+  --knob-row: 14px;
+  --block-gutter: 0px;
+  --btn-d: 56px;
+  --btn-col: 16px;
+  --btn-row: 14px;
+  --btn-slot: 56px;
+  --settings-gutter: 0px;
+  --gear-d: 34px;
+  --chassis-radius: 18px;
+  --lr-gap: 14px;
+  --section-gap: 26px; /* 组间疏 */
+}
+
+.left {
+  width: var(--left-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  padding-top: 8px;
+}
+
+.left-stack {
+  width: var(--cluster-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* was space-between — 不再纵向扯散 */
+  padding: 2px 0 8px;
+  gap: 0;
+}
+.left-stack .gutter-20 { display: none; }
+
+.brand {
+  width: var(--cluster-w);
+  margin-bottom: var(--brand-bottom);
+  text-align: left;
+  flex-shrink: 0;
+}
+.brand h1 {
+  font-size: var(--title-size);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.brand .status {
+  margin-top: 4px;
+  font-size: var(--status-size);
+  font-weight: 400;
+  color: #777;
+  line-height: 1.2;
+}
+
+.knobs {
+  display: grid;
+  grid-template-columns: var(--knob-d) var(--knob-d);
+  column-gap: var(--knob-col);
+  row-gap: var(--knob-row);
+  width: var(--cluster-w);
+  justify-content: space-between;
+  margin: 0 0 var(--section-gap);
+  flex-shrink: 0;
+}
+.knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--knob-d);
+}
+.knob {
+  width: var(--knob-d);
+  height: var(--knob-d);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #38383c 0%, #1e1e22 70%);
+  border: 1.5px solid rgba(255,255,255,0.85);
+  position: relative;
+  /* 外环 + 凹槽环 + 内帽高光 */
+  box-shadow:
+    inset 0 0 0 9px #0f0f12,
+    inset 0 10px 2px rgba(255,255,255,0.12),
+    0 4px 8px rgba(0,0,0,0.5);
+}
+.knob::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 22px; /* 落在内帽下缘，非贴外圈 */
+  width: 3px;
+  height: 8px;
+  background: #fff;
+  border-radius: 1.5px;
+  transform: translateX(-50%);
+  top: auto;
+}
+.knob-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e0e5;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--btn-slot));
+  column-gap: var(--btn-col);
+  row-gap: var(--btn-row);
+  width: var(--cluster-w);
+  margin: 0 0 var(--section-gap);
+  justify-items: center;
+  flex-shrink: 0;
+}
+.left-stack > .btn-grid:last-of-type {
+  margin-bottom: 0; /* 末段走带不再加组间空 */
+}
+
+.round-btn {
+  width: var(--btn-d);
+  height: var(--btn-d);
+  border-radius: 50%;
+  background: #1c1c20;
+  border: 1.5px solid #45454a;
+  color: #dcdce0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 0 0 3.5px #0e0e11,
+    inset 0 4px 1px rgba(255,255,255,0.15);
+}
+.round-btn.danger {
+  color: #ff453a;
+  text-shadow: 0 0 6px rgba(255,69,58,0.35);
+}
+.round-btn.active {
+  border-width: 1.5px;
+  border-color: rgba(255,255,255,0.75);
+  background: #28282e;
+  color: #fff;
+}
+.round-btn .ico {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.right-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 36px;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+.right-top .gear-tr {
+  position: static;
+  width: var(--gear-d);
+  height: var(--gear-d);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.65);
+  padding: 0;
+  cursor: default;
+  box-shadow: none;
+}
+.right-top .gear-tr svg { width: 15px; height: 15px; opacity: 0.9; }
+
+.pads {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  column-gap: 2.4%;
+  row-gap: 12px;
+  align-content: stretch;
+  overflow: visible;
+}
+.pad {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: 1.384 / 1;
+  max-height: calc(100% - 22px);
+  background: radial-gradient(circle at 50% 52%, #e5aaff 0%, #b24bf7 52%, #8d27d9 100%);
+  border: 1px solid var(--pad-edge);
+  border-radius: 4px; /* hard hardware corner — was ~8.5% soft */
+  flex-shrink: 1;
+  position: relative;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.4),
+    inset 0 0 12px rgba(45,0,90,0.45),
+    0 3px 6px rgba(0,0,0,0.55);
+  transition: background 250ms ease-out, border-color 250ms ease-out, border-width 100ms ease-out, box-shadow 250ms ease-out;
+}
+.pad.hit,
+.pad.hit-app {
+  background: radial-gradient(circle at 50% 48%, #f0d0ff 0%, #c56af8 48%, #a03ae8 100%);
+  border-color: #FFFFFF;
+  border-width: 2.5px;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255,255,255,0.5),
+    0 0 6px 2px rgba(245, 232, 255, 0.45),
+    0 0 10px 3px rgba(255, 255, 255, 0.22);
+}
+.pad-label {
+  height: 18px;
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dcdce2;
+  line-height: 1;
+  padding: 0 1px;
+  letter-spacing: 0.2px;
+}
+.pad-label .sub {
+  color: rgba(255,255,255,0.45);
+  font-size: 10px;
+  font-weight: 400;
+}

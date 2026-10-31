@@ -1,8 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// 4×4 pad stage matching preview mock: horizontal rectangles, uniform #CB85F3,
-/// labels under each pad (never inside the face). Not App Icon column colors.
+/// 4×4 pad stage — vision A hard 4px corners + radial backlight face.
+/// Labels under each pad (never inside the face). Hit = Recipe A++ rim + soft outer halo.
 struct PadGridView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var settings: AppSettings
@@ -74,7 +74,6 @@ struct PadGridView: View {
         // Width-limited padW from 4 cols + 3 gaps.
         let padWFromWidth = availW / (4 + 3 * 0.14)
         // Height-limited: 4*(padH + labelBand) + 3*vGap ≈ availH
-        // Approximate labelBand ≈ 0.22*padH, vGap ≈ 0.04*padH → cell≈1.26*padH
         let padHFromHeight = availH / (4 * 1.26 + 3 * 0.05)
         let padWFromHeight = padHFromHeight * aspect
 
@@ -117,9 +116,8 @@ struct ForcePadCell: View {
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
 
-    private var shortSide: CGFloat { min(padWidth, padHeight) }
-    /// Hard-edge rounded rect — designer P1 lock 8.5% of short side.
-    private var corner: CGFloat { shortSide * PadTheme.padCornerFraction }
+    /// Vision A hard 4px corner (not soft 8.5% continuous).
+    private var corner: CGFloat { PadTheme.padCornerRadius }
 
     /// 0…1 flash amount; held finger uses at least the held floor while down.
     private var t: CGFloat {
@@ -133,9 +131,26 @@ struct ForcePadCell: View {
         isActive && flash <= PadHitLight.heldIntensity + 0.02
     }
 
-    private var faceFill: Color {
-        if useHeldLook { return PadHitLight.heldFill }
-        return PadHitLight.mix(PadHitLight.idleFill, PadHitLight.hitFill, t)
+    private var faceFill: RadialGradient {
+        let center: Color
+        let mid: Color
+        let edge: Color
+        if useHeldLook {
+            center = PadHitLight.mix(PadTheme.padRadialCenter, PadTheme.padHitRadialCenter, PadHitLight.heldIntensity)
+            mid = PadHitLight.mix(PadTheme.padRadialMid, PadTheme.padHitRadialMid, PadHitLight.heldIntensity)
+            edge = PadHitLight.mix(PadTheme.padRadialEdge, PadTheme.padHitRadialEdge, PadHitLight.heldIntensity)
+        } else {
+            center = PadHitLight.mix(PadTheme.padRadialCenter, PadTheme.padHitRadialCenter, t)
+            mid = PadHitLight.mix(PadTheme.padRadialMid, PadTheme.padHitRadialMid, t)
+            edge = PadHitLight.mix(PadTheme.padRadialEdge, PadTheme.padHitRadialEdge, t)
+        }
+        let y: CGFloat = useHeldLook || t > 0.2 ? 0.48 : 0.52
+        return RadialGradient(
+            colors: [center, mid, edge],
+            center: UnitPoint(x: 0.5, y: y),
+            startRadius: 0,
+            endRadius: max(padWidth, padHeight) * 0.72
+        )
     }
 
     private var rimColor: Color {
@@ -162,7 +177,6 @@ struct ForcePadCell: View {
             ZStack {
                 // Recipe A++ soft outer perimeter halo (behind face).
                 // CSS: 0 0 6px 2px rgba(245,232,255,0.50) + 0 0 10px 3px rgba(255,255,255,0.28)
-                // Stroked rings + blur = glow around edge only (not filled pad bloom).
                 if t > PadHitLight.intensityEpsilon {
                     shape
                         .stroke(
@@ -181,9 +195,17 @@ struct ForcePadCell: View {
                         .allowsHitTesting(false)
                 }
 
-                // A+ face: outer #FFFFFF 3pt + inset white α0.55; fill slight lift only.
+                // Vision A radial backlight face + A+ rim/inset.
                 shape
                     .fill(faceFill)
+                    .overlay(
+                        // Soft face bevel from CSS inset highlights
+                        shape
+                            .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+                            .blur(radius: 0.3)
+                            .padding(0.5)
+                            .opacity(t < 0.15 ? 1 : 0.35)
+                    )
                     .overlay(
                         shape.strokeBorder(rimColor, lineWidth: rimWidth)
                     )
@@ -193,6 +215,7 @@ struct ForcePadCell: View {
                             .padding(PadHitLight.innerStrokeInset)
                     )
                     .clipShape(shape)
+                    .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
 
                 ForceTouchPadRepresentable(
                     onDown: onDown,
@@ -205,19 +228,18 @@ struct ForcePadCell: View {
             .clipped()
             .padding(-expand)
             .scaleEffect(isActive ? 0.97 : 1)
-            // Decay is driven by published flash intensity (exp decay ticker) — no extra withAnimation.
             .animation(.easeOut(duration: 0.08), value: isActive)
 
-            // Beginner drum name under the pad (mock position) — never swing/octave pro copy.
+            // Beginner drum name under the pad — CSS `#dcdce2` weight ~600.
             HStack(spacing: 4) {
                 Text(title)
                     .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.92))
+                    .foregroundStyle(PadTheme.padLabel)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Spacer(minLength: 2)
                 Text(subtitle)
-                    .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .medium, design: .rounded))
+                    .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .regular, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.45))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
