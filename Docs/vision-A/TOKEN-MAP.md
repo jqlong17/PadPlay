@@ -7,18 +7,19 @@ Source: `patch-vision-A.css` + `patch-vision-C.txt`. App Icon unchanged. PadHitL
 | `--left-w` | 340 | `LeftChromeMetrics.refWidth` |
 | `--cluster-w` | 200 | `LeftChromeMetrics.clusterWidth` (= `56×3+16×2`) |
 | `.left` / `.left-stack` `justify-content` | `flex-start` | top-aligned `VStack` + bottom `Spacer` (no space-between) |
-| `--section-gap` | 26 | `LeftChromeMetrics.sectionGap` |
-| `--brand-bottom` | 20 | `LeftChromeMetrics.brandBottom` |
+| `--section-gap` | **18** | `LeftChromeMetrics.sectionGap` (was 26) |
+| `--brand-bottom` | 20 | `LeftChromeMetrics.brandBottom` (brand band only; knobs pin to sharedFaceTop) |
 | `--title-size` / `--status-size` | 22 / 12 | `titleSize` / `statusSize` |
-| `--knob-d` / `--knob-col` / `--knob-row` | 84 / 32 / 14 | `knobDiameter` / `knobColGap` / `knobRowGap` |
+| `--knob-d` / `--knob-col` / `--knob-row` | 84 / 32 / **10** | `knobDiameter` / `knobColGap` / `knobRowGap` (row was 14) |
 | knob outer width | `84×2+32=200` | `knobGridWidth` aligns to cluster |
 | knob inset ring | `inset 0 0 0 9px` + top light | `KnobView` `strokeBorder` recess |
 | mid indicator | 6 o’clock | unchanged angle map |
-| `--btn-d` / `--btn-col` / `--btn-row` / `--btn-slot` | 56 / 16 / 14 / 56 | `buttonDiameter` / `colGap` / `rowGap` / `buttonSlot` |
+| `--btn-d` / `--btn-col` / `--btn-row` / `--btn-slot` | 56 / 16 / **10** / 56 | `buttonDiameter` / `colGap` / `rowGap` / `buttonSlot` (row was 14) |
 | round-btn inset | `inset 0 0 0 3.5px` | `RoundButtonView` recess |
 | `.round-btn.active` | white ring, dark face | `ChromeRing.activeColor` α0.75; face `#28282e` |
-| `--gear-d` + `.right-top .gear-tr` | ⌀34, inset top/right **18**, stroke `rgba(255,255,255,0.18)` | pad-stage top-trailing; `LeftChromeMetrics.gearInset` |
-| pads (1180×820 landscape v0 note) | padW≈172 padH≈124 padGapH=24 padGapV≈32 | flex stage; report `padGapV` = face-to-face row gutter |
+| `--gear-d` + inset | ⌀34, inset top/right **18**, stroke `rgba(255,255,255,0.18)` | **chassis** top-trailing overlay (not pad-stage); `LeftChromeMetrics.gearInset` |
+| shared face top | **y ≈ 104** (100–107 lock) | `LeftChromeMetrics.sharedFaceTop` — knob1 face = pad13 face (Δ≤3) |
+| pads (1180×820 landscape v0 note) | padW≈172 padH≈124 padGapH=24 padGapV≈32 | flex stage; top-aligned under sharedFaceTop; report `padGapV` = face-to-face row gutter |
 | settings sheet | top-right under gear | `popover` + `.presentationCompactAdaptation(.popover)` |
 | `.pad` `border-radius` | **4px** | `PadTheme.padCornerRadius` (was 8.5%) |
 | `.pad` fill | radial `#e5aaff→#b24bf7→#8d27d9` | `PadTheme.padRadial*` |
@@ -28,4 +29,4 @@ Source: `patch-vision-A.css` + `patch-vision-C.txt`. App Icon unchanged. PadHitL
 
 ## Calibration mode (debug)
 
-Settings → **矫正模式 / Calibration mode** (default OFF, persisted). When ON, the main stage is a wireframe HUD only (rects, crosses, ids, gap labels) covering left chrome (knobs / btn / transport), gear, and pads 1–16. **复制布局报告** pastes QA schema `PadPlay layout report v0` (frames in pt relative to root chassis content; token + measured−token deltas for left-w / cluster / knob⌀ / btn⌀ / gear⌀ / sectionGap / knobCol / knobRow / btnCol; padGapH/V measured only — **padGapV = face-to-face row gutter from pad frames**, not VStack `vGap`). App Icon and Recipe A++ hit path unchanged when mode is OFF.
+Settings → **矫正模式 / Calibration mode** (default OFF, persisted). When ON, the main stage is a wireframe HUD only (rects, crosses, ids, gap labels) covering left chrome (knobs / btn / transport), gear, and pads 1–16. **复制布局报告** pastes QA schema `PadPlay layout report v0` (frames in pt relative to **chassis root**; `screenSize` = chassis box so gear right gutter = `screenWidth − gear.maxX` ≈ 18; token + measured−token deltas for left-w / cluster / knob⌀ / btn⌀ / gear⌀ / sectionGap / knobCol / knobRow / btnCol; padGapH/V measured only — **padGapV = face-to-face row gutter from pad frames**, not VStack `vGap`; align line reports knob1.y vs pad13.y vs sharedFaceTop104). App Icon and Recipe A++ hit path unchanged when mode is OFF.

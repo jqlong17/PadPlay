@@ -1,5 +1,5 @@
-1) 左栏取消 space-between，组间固定 26px；旋钮外切 84×2+32=200 对齐三列圆钮岛。
-2) 旋钮/圆钮加 inset 凹槽环，去网页幽灵描边；齿轮降噪到 34px 半透明边。
+1) 左栏取消 space-between，组间固定 18px；旋钮外切 84×2+32=200 对齐三列圆钮岛；knob/btn rowGap 10。
+2) 旋钮/圆钮加 inset 凹槽环，去网页幽灵描边；齿轮 ⌀34 半透明边，chassis 顶右 inset 18/18。
 3) 垫面改 4px 硬圆角 + 径向背光；标签略提亮加字重。
-4) HTML 可不改；把 patch-vision-A.css 中规则覆盖进 index.html 对应选择器即可。
+4) knobTop = padTop（sharedFaceTop≈104，Δ≤3）；HTML 可不改；CSS 覆盖进 index.html 对应选择器即可。
 5) 落盘后请重截 baseline-landscape.png。

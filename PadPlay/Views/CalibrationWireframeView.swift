@@ -2,35 +2,64 @@ import SwiftUI
 
 /// Wireframe-only calibration HUD — replaces real knobs/pads/chrome when mode is ON.
 /// Shares `LeftChromeMetrics` + `PadGridView.layout` so reported frames match live layout.
+/// Root coordinate space is the chassis box; gear insets from chassis top/trailing (18/18).
 struct CalibrationWireframeView: View {
     let leftWidth: CGFloat
     let padWidth: CGFloat
     let padHeight: CGFloat
     let columnGap: CGFloat
     let metrics: LeftChromeMetrics
+    /// Column-local Y for knob1 / pad13 faces (chassis sharedFaceTop − chassisPad).
+    let faceTopInColumn: CGFloat
+    let chassisPad: CGFloat
+    let chassisSize: CGSize
+    let rootSpaceName: String
     @Binding var showSettings: Bool
 
     @EnvironmentObject private var calibration: CalibrationLayoutStore
     @EnvironmentObject private var settings: AppSettings
 
-    private let rootSpace = "padplay.root"
-
     var body: some View {
-        HStack(alignment: .center, spacing: columnGap) {
-            leftChrome
-                .frame(width: leftWidth, alignment: .top)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .calibrationAnchor("left", in: .named(rootSpace))
+        ZStack(alignment: .topTrailing) {
+            HStack(alignment: .top, spacing: columnGap) {
+                leftChrome
+                    .frame(width: leftWidth, alignment: .top)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .calibrationAnchor("left", in: .named(rootSpaceName))
 
-            padStage
-                .frame(width: padWidth, height: padHeight)
+                padStage
+                    .frame(width: padWidth, height: padHeight)
+            }
+            .padding(chassisPad)
+
+            // Gear on chassis edges — same placement as live ContentView overlay.
+            Button {
+                showSettings = true
+            } label: {
+                wireCircle(id: "gear", diameter: metrics.gearDiameter)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(settings.t("settings.title"))
+            .padding(.top, LeftChromeMetrics.gearInset)
+            .padding(.trailing, LeftChromeMetrics.gearInset)
+            .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                SettingsSheetView()
+                    .environmentObject(settings)
+                    .environmentObject(calibration)
+                    .frame(minWidth: 280, idealWidth: 300, minHeight: 280, idealHeight: 360)
+                    .presentationCompactAdaptation(.popover)
+            }
         }
-        .coordinateSpace(name: rootSpace)
+        .frame(width: chassisSize.width, height: chassisSize.height)
+        .coordinateSpace(name: rootSpaceName)
         .onPreferenceChange(CalibrationFrameKey.self) { frames in
-            let padLayout = PadGridView.layout(in: CGSize(
-                width: padWidth,
-                height: max(0, padHeight - LeftChromeMetrics.gearTopReserve)
-            ))
+            let padLayout = PadGridView.layout(
+                in: CGSize(
+                    width: padWidth,
+                    height: max(0, padHeight - faceTopInColumn)
+                ),
+                pinTopFace: true
+            )
             // padGapV fallback = label band + row spacing; update() prefers frame-derived face gap.
             let padGapVFallback = (padLayout.cellH - padLayout.padH) + padLayout.vGap
             let gaps = CalibrationGaps(
@@ -41,8 +70,7 @@ struct CalibrationWireframeView: View {
                 padGapH: padLayout.hGap,
                 padGapV: padGapVFallback
             )
-            // Keep window screenSize from ContentView; only refresh frames + gaps here.
-            calibration.update(frames: frames, gaps: gaps, screen: calibration.screenSize)
+            calibration.update(frames: frames, gaps: gaps, screen: chassisSize)
         }
         .background(Color.black.opacity(0.55))
     }
@@ -52,31 +80,34 @@ struct CalibrationWireframeView: View {
     private var leftChrome: some View {
         HStack(spacing: 0) {
             Spacer(minLength: 0)
-            VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
                 brandStub
-                    .padding(.bottom, metrics.brandBottom)
+                    .padding(.top, metrics.leftTopPadding)
 
-                knobsBlock
-                    .padding(.bottom, metrics.sectionGap)
-                    .overlay(alignment: .bottom) {
-                        marginLabel(metrics.sectionGap, yOffset: metrics.sectionGap * 0.5)
-                    }
+                VStack(alignment: .leading, spacing: 0) {
+                    Color.clear.frame(height: faceTopInColumn)
 
-                buttonsBlock(prefix: "btn", count: 6)
-                    .padding(.bottom, metrics.sectionGap)
-                    .overlay(alignment: .bottom) {
-                        marginLabel(metrics.sectionGap, yOffset: metrics.sectionGap * 0.5)
-                    }
+                    knobsBlock
+                        .padding(.bottom, metrics.sectionGap)
+                        .overlay(alignment: .bottom) {
+                            marginLabel(metrics.sectionGap, yOffset: metrics.sectionGap * 0.5)
+                        }
 
-                buttonsBlock(prefix: "transport", count: 6)
+                    buttonsBlock(prefix: "btn", count: 6)
+                        .padding(.bottom, metrics.sectionGap)
+                        .overlay(alignment: .bottom) {
+                            marginLabel(metrics.sectionGap, yOffset: metrics.sectionGap * 0.5)
+                        }
 
-                Spacer(minLength: 0)
+                    buttonsBlock(prefix: "transport", count: 6)
+
+                    Spacer(minLength: 0)
+                }
             }
             .frame(width: metrics.clusterWidth, alignment: .topLeading)
-            .calibrationAnchor("cluster", in: .named(rootSpace))
+            .calibrationAnchor("cluster", in: .named(rootSpaceName))
             Spacer(minLength: 0)
         }
-        .padding(.top, metrics.leftTopPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
@@ -147,37 +178,14 @@ struct CalibrationWireframeView: View {
     // MARK: - Pad stage wireframe
 
     private var padStage: some View {
-        let gearD = metrics.gearDiameter
-        let gearInset = LeftChromeMetrics.gearInset
-        let topReserve = LeftChromeMetrics.gearTopReserve
-
-        return ZStack(alignment: .topTrailing) {
-            padGridWireframe
-                .padding(.top, topReserve)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            Button {
-                showSettings = true
-            } label: {
-                wireCircle(id: "gear", diameter: gearD)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(settings.t("settings.title"))
-            .padding(.top, gearInset)
-            .padding(.trailing, gearInset)
-            .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                SettingsSheetView()
-                    .environmentObject(settings)
-                    .environmentObject(calibration)
-                    .frame(minWidth: 280, idealWidth: 300, minHeight: 280, idealHeight: 360)
-                    .presentationCompactAdaptation(.popover)
-            }
-        }
+        padGridWireframe
+            .padding(.top, faceTopInColumn)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var padGridWireframe: some View {
         GeometryReader { geo in
-            let layout = PadGridView.layout(in: geo.size)
+            let layout = PadGridView.layout(in: geo.size, pinTopFace: true)
             ZStack {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .stroke(Wire.dim, lineWidth: 1)
@@ -196,7 +204,10 @@ struct CalibrationWireframeView: View {
                         }
                     }
                 }
-                .padding(layout.inset)
+                .padding(.leading, layout.inset)
+                .padding(.trailing, layout.inset)
+                .padding(.bottom, layout.inset)
+                .padding(.top, layout.topInset)
                 .overlay(alignment: .topTrailing) {
                     // h = HStack spacing; v = face-to-face row gutter (label band + row spacing).
                     let faceGapV = (layout.cellH - layout.padH) + layout.vGap
@@ -210,7 +221,7 @@ struct CalibrationWireframeView: View {
                 }
             }
             .frame(width: layout.gridW, height: layout.gridH)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -226,7 +237,7 @@ struct CalibrationWireframeView: View {
                 .foregroundStyle(Wire.label)
         }
         .frame(width: diameter, height: diameter)
-        .calibrationAnchor(id, in: .named(rootSpace))
+        .calibrationAnchor(id, in: .named(rootSpaceName))
     }
 
     private func wirePad(id: String, width: CGFloat, height: CGFloat) -> some View {
@@ -239,7 +250,7 @@ struct CalibrationWireframeView: View {
                 .foregroundStyle(Wire.label)
         }
         .frame(width: width, height: height)
-        .calibrationAnchor(id, in: .named(rootSpace))
+        .calibrationAnchor(id, in: .named(rootSpaceName))
     }
 
     private func crosshair() -> some View {

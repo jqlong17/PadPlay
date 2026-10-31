@@ -8,6 +8,9 @@ struct ContentView: View {
 
     @State private var showSettings = false
 
+    /// Chassis-root coordinate space — frames + screenSize share this box.
+    private let rootSpace = "padplay.root"
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
@@ -23,7 +26,7 @@ struct ContentView: View {
         PadTheme.chassis
     }
 
-    /// LEFT compact chrome | RIGHT top-bar gear + 4×4 pad stage (vision A).
+    /// LEFT compact chrome | RIGHT 4×4 pad stage; gear overlays chassis top-trailing.
     private func landscapeLayout(size: CGSize) -> some View {
         let inset = edgePadding(for: size)
         let innerH = size.height - inset * 2
@@ -49,60 +52,76 @@ struct ContentView: View {
         }
 
         let chromeMetrics = LeftChromeMetrics(width: leftWidth, height: usableH)
+        let chassisSize = CGSize(width: innerW, height: innerH)
+        // Column-local Y of shared faces = chassis sharedFaceTop − chassisPad.
+        let faceTopInColumn = max(0, LeftChromeMetrics.sharedFaceTop - chassisPad)
 
         return deviceChassis {
             Group {
                 if settings.calibrationMode {
-                    // Wireframe HUD only — no real knobs/pads; same column metrics as live layout.
+                    // Wireframe HUD owns chassis root space + gear (for frame collection).
                     CalibrationWireframeView(
                         leftWidth: leftWidth,
                         padWidth: padWidth,
                         padHeight: padHeight,
                         columnGap: gap,
                         metrics: chromeMetrics,
+                        faceTopInColumn: faceTopInColumn,
+                        chassisPad: chassisPad,
+                        chassisSize: chassisSize,
+                        rootSpaceName: rootSpace,
                         showSettings: $showSettings
                     )
                 } else {
-                    HStack(alignment: .center, spacing: gap) {
-                        ControlClusterView()
-                            .frame(width: leftWidth, alignment: .top)
-                            .frame(maxHeight: .infinity, alignment: .top)
+                    ZStack(alignment: .topTrailing) {
+                        HStack(alignment: .top, spacing: gap) {
+                            ControlClusterView(faceTopInColumn: faceTopInColumn)
+                                .frame(width: leftWidth, alignment: .top)
+                                .frame(maxHeight: .infinity, alignment: .top)
 
-                        padStageColumn(width: padWidth, height: padHeight, metrics: chromeMetrics)
+                            padStageColumn(
+                                width: padWidth,
+                                height: padHeight,
+                                faceTopInColumn: faceTopInColumn
+                            )
+                        }
+                        .padding(chassisPad)
+
+                        // Gear locks to chassis edges (not pad-stage), inset top/right 18.
+                        settingsGearButton(diameter: chromeMetrics.gearDiameter)
+                            .padding(.top, LeftChromeMetrics.gearInset)
+                            .padding(.trailing, LeftChromeMetrics.gearInset)
                     }
                 }
             }
-            .padding(chassisPad)
         }
         .frame(width: innerW, height: innerH)
         .onAppear {
-            calibration.screenSize = size
+            // Report chassis box — same space as frame origins (not outer window).
+            calibration.screenSize = chassisSize
         }
         .onChange(of: size) { _, new in
-            calibration.screenSize = new
+            let edge = edgePadding(for: new)
+            calibration.screenSize = CGSize(
+                width: new.width - edge * 2,
+                height: new.height - edge * 2
+            )
         }
     }
 
-    /// Pad stage: settings gear locked to design inset top 18 / right 18 (⌀34) + pad grid below.
-    private func padStageColumn(width: CGFloat, height: CGFloat, metrics: LeftChromeMetrics) -> some View {
-        let gearD = metrics.gearDiameter
-        let gearInset = LeftChromeMetrics.gearInset
-        let topReserve = LeftChromeMetrics.gearTopReserve
-
-        return ZStack(alignment: .topTrailing) {
-            PadGridView()
-                .padding(.top, topReserve)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            settingsGearButton(diameter: gearD)
-                .padding(.top, gearInset)
-                .padding(.trailing, gearInset)
-        }
-        .frame(width: width, height: height)
+    /// Pad stage: top-aligned grid so pad13 face sits on the shared face-top axis.
+    private func padStageColumn(
+        width: CGFloat,
+        height: CGFloat,
+        faceTopInColumn: CGFloat
+    ) -> some View {
+        PadGridView(verticalAlignment: .top)
+            .padding(.top, faceTopInColumn)
+            .frame(width: width, height: height, alignment: .top)
     }
 
     /// Quiet gear — ⌀34, faint stroke rgba(255,255,255,0.18), near-transparent fill.
-    /// Sheet / popover anchors from this top-right control.
+    /// Sheet / popover anchors from this chassis top-right control.
     private func settingsGearButton(diameter: CGFloat) -> some View {
         Button {
             showSettings = true

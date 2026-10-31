@@ -81,7 +81,7 @@ struct LeftChromeMetrics {
     static let refHeight: CGFloat = 560
     /// `--cluster-w`.
     static let clusterWidthBase: CGFloat = 200
-    /// `--gear-d` (lives on pad-stage top bar, not left chrome).
+    /// `--gear-d` (chassis top-trailing overlay, not left chrome).
     static let gearDiameterBase: CGFloat = 34
 
     let width: CGFloat
@@ -99,36 +99,37 @@ struct LeftChromeMetrics {
     var statusSize: CGFloat { 12 * scale }
     var brandBottom: CGFloat { 20 * scale }
 
-    // Knobs — `--knob-d` 84, `--knob-col` 32, `--knob-row` 14
+    // Knobs — `--knob-d` 84, `--knob-col` 32, `--knob-row` 10
     var knobDiameter: CGFloat { 84 * scale }
     var knobColGap: CGFloat { 32 * scale }
-    var knobRowGap: CGFloat { 14 * scale }
+    var knobRowGap: CGFloat { 10 * scale }
     var knobGridWidth: CGFloat { knobDiameter * 2 + knobColGap }
 
-    // Function + transport — `--btn-d` 56, `--btn-col` 16, `--btn-row` 14, `--btn-slot` 56
+    // Function + transport — `--btn-d` 56, `--btn-col` 16, `--btn-row` 10, `--btn-slot` 56
     var buttonDiameter: CGFloat { 56 * scale }
     var colGap: CGFloat { 16 * scale }
-    var rowGap: CGFloat { 14 * scale }
+    var rowGap: CGFloat { 10 * scale }
     /// Slot equals face diameter (recessed ring is inset, not an outer mount).
     var buttonSlot: CGFloat { buttonDiameter }
     /// Shared island width — `--cluster-w`.
     var clusterWidth: CGFloat { buttonSlot * 3 + colGap * 2 }
     var threeColWidth: CGFloat { clusterWidth }
 
-    /// Fixed section gap brand→knobs→grids→transport — `--section-gap` 26.
+    /// Fixed section gap knobs→grids→transport — `--section-gap` 18.
     /// No `space-between` stretch.
-    var sectionGap: CGFloat { 26 * scale }
+    var sectionGap: CGFloat { 18 * scale }
 
-    // Settings gear on pad-stage top-right — `--gear-d` 34 (fixed, not scaled)
+    // Settings gear on chassis top-right — `--gear-d` 34 (fixed, not scaled)
     var gearDiameter: CGFloat { Self.gearDiameterBase }
-    /// Design inset from pad-stage top / trailing edges.
+    /// Design inset from chassis top / trailing edges (not pad-stage).
     static let gearInset: CGFloat = 18
-    /// Breathing room under gear before pad grid (keeps faces clear of the control).
-    static let gearBottomGap: CGFloat = 8
-    /// Vertical space reserved above pads: inset + ⌀ + gap under gear.
-    static var gearTopReserve: CGFloat { gearInset + gearDiameterBase + gearBottomGap }
 
-    /// Left column top inset (CSS `.left { padding-top: 8px }`).
+    /// Shared top axis for knob1 face and pad13 face in chassis-root coordinates (pt).
+    /// Locked to y≈100–107 so left chrome and pads sink together; Δ(knobTop, padTop) ≤ 3.
+    static let sharedFaceTop: CGFloat = 104
+
+    /// Left column top inset (CSS `.left { padding-top: 8px }`) — brand only;
+    /// knobs lock to `sharedFaceTop` instead of stacking tightly under brand.
     var leftTopPadding: CGFloat { 8 * scale }
 }
 

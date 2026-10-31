@@ -18,17 +18,17 @@
   --brand-bottom: 20px;
   --knob-d: 84px;
   --knob-col: 32px;
-  --knob-row: 14px;
+  --knob-row: 10px;
   --block-gutter: 0px;
   --btn-d: 56px;
   --btn-col: 16px;
-  --btn-row: 14px;
+  --btn-row: 10px;
   --btn-slot: 56px;
   --settings-gutter: 0px;
   --gear-d: 34px;
   --chassis-radius: 18px;
   --lr-gap: 14px;
-  --section-gap: 26px; /* 组间疏 */
+  --section-gap: 18px; /* 组间疏 — layout polish lock */
 }
 
 .left {
