@@ -24,6 +24,16 @@ final class DrumEngine: ObservableObject {
     private let eq = AVAudioUnitEQ(numberOfBands: 1)
     private var timePitch: AVAudioUnitTimePitch?
 
+    /// Canonical player format. Bundled WAVs are mono 44.1 kHz; connecting with
+    /// `format: nil` negotiates stereo hardware layout, so scheduling mono buffers
+    /// aborts inside `AVAudioPlayerNode.scheduleBuffer` (SIGABRT on device).
+    private let playFormat: AVAudioFormat = {
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 2) else {
+            preconditionFailure("Unable to create standard stereo play format")
+        }
+        return format
+    }()
+
     private var buffers: [String: AVAudioPCMBuffer] = [:]
     private var players: [AVAudioPlayerNode] = []
     private var playerIndex = 0
@@ -44,26 +54,46 @@ final class DrumEngine: ObservableObject {
         loadBundledSamples()
     }
 
-    func start() {
-        guard !isRunning else { return }
+    @discardableResult
+    func start() -> Bool {
+        if isRunning, engine.isRunning { return true }
         do {
             try AVAudioSession.sharedInstance().setActive(true)
+            engine.prepare()
             try engine.start()
             isRunning = true
             applyEffects()
+            return true
         } catch {
+            isRunning = false
             print("DrumEngine start failed: \(error)")
+            return false
         }
     }
 
     // MARK: - Playback
 
     func play(sampleName: String, velocity: Double, pitchOverride: Float? = nil) {
-        if !isRunning { start() }
-        guard let buffer = buffers[sampleName] else { return }
+        guard ensureReadyToPlay() else { return }
+        guard let buffer = buffers[sampleName] else {
+            print("DrumEngine: missing buffer for \(sampleName)")
+            return
+        }
+        // Defensive: never schedule a buffer whose channel count / rate differs
+        // from the player connection — that raises an ObjC exception → SIGABRT.
+        guard buffer.format.channelCount == playFormat.channelCount,
+              abs(buffer.format.sampleRate - playFormat.sampleRate) < 0.5 else {
+            print("DrumEngine: buffer format mismatch for \(sampleName)")
+            return
+        }
 
         let player = players[playerIndex]
         playerIndex = (playerIndex + 1) % players.count
+
+        guard player.engine != nil else {
+            print("DrumEngine: player node not attached")
+            return
+        }
 
         if let pitchOverride, let timePitch {
             timePitch.pitch = pitchOverride * 100
@@ -130,6 +160,7 @@ final class DrumEngine: ObservableObject {
 
     func startTransport() {
         guard !isPlaying else { return }
+        guard ensureReadyToPlay() else { return }
         isPlaying = true
         playbackStartDate = Date()
         beatIndex = 0
@@ -175,10 +206,16 @@ final class DrumEngine: ObservableObject {
 
     // MARK: - Private
 
+    private func ensureReadyToPlay() -> Bool {
+        if isRunning, engine.isRunning { return true }
+        return start()
+    }
+
     private func configureSession() {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setPreferredSampleRate(playFormat.sampleRate)
             try session.setPreferredIOBufferDuration(0.005)
             try session.setActive(true)
         } catch {
@@ -210,14 +247,15 @@ final class DrumEngine: ObservableObject {
             players.append(node)
         }
 
-        // Connect after engine is prepared; use nil format to let engine negotiate
+        // Explicit stereo play format so scheduled buffers always match the node.
         for player in players {
-            engine.connect(player, to: playerMixer, format: nil)
+            engine.connect(player, to: playerMixer, format: playFormat)
         }
-        engine.connect(playerMixer, to: eq, format: nil)
-        engine.connect(eq, to: pitch, format: nil)
-        engine.connect(pitch, to: reverb, format: nil)
-        engine.connect(reverb, to: engine.mainMixerNode, format: nil)
+        engine.connect(playerMixer, to: eq, format: playFormat)
+        engine.connect(eq, to: pitch, format: playFormat)
+        engine.connect(pitch, to: reverb, format: playFormat)
+        // Let the main mixer convert to the device hardware rate/channel layout.
+        engine.connect(reverb, to: engine.mainMixerNode, format: playFormat)
     }
 
     private func loadBundledSamples() {
@@ -238,13 +276,55 @@ final class DrumEngine: ObservableObject {
             do {
                 let file = try AVAudioFile(forReading: url)
                 let frameCount = AVAudioFrameCount(file.length)
-                guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount) else { continue }
-                try file.read(into: buffer)
-                buffers[name] = buffer
+                guard frameCount > 0,
+                      let raw = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frameCount)
+                else { continue }
+                try file.read(into: raw)
+                guard let converted = convertBuffer(raw, to: playFormat) else {
+                    print("Failed converting \(name) to play format")
+                    continue
+                }
+                buffers[name] = converted
             } catch {
                 print("Failed loading \(name): \(error)")
             }
         }
+    }
+
+    /// Convert (typically mono 44.1 kHz file buffers) into the stereo `playFormat`.
+    private func convertBuffer(_ source: AVAudioPCMBuffer, to format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        if source.format.sampleRate == format.sampleRate,
+           source.format.channelCount == format.channelCount,
+           source.format.commonFormat == format.commonFormat {
+            return source
+        }
+
+        guard let converter = AVAudioConverter(from: source.format, to: format) else { return nil }
+
+        let ratio = format.sampleRate / source.format.sampleRate
+        let capacity = AVAudioFrameCount(Double(source.frameLength) * ratio) + 32
+        guard let destination = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(capacity, 1)) else {
+            return nil
+        }
+
+        var error: NSError?
+        var inputProvided = false
+        let status = converter.convert(to: destination, error: &error) { _, outStatus in
+            if inputProvided {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            inputProvided = true
+            outStatus.pointee = .haveData
+            return source
+        }
+
+        if let error {
+            print("AVAudioConverter error: \(error)")
+            return nil
+        }
+        guard status != .error, destination.frameLength > 0 else { return nil }
+        return destination
     }
 
     private func restartTransportClock() {

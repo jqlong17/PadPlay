@@ -11,25 +11,74 @@ struct RoundButtonView: View {
     var longPress: (() -> Void)? = nil
 
     var body: some View {
-        let size: CGFloat = compact ? 40 : 46
+        let size: CGFloat = compact ? 38 : 44
+        let ring = isActive ? (accent ?? PadTheme.purpleGlow) : PadTheme.label.opacity(0.4)
+
         Button(action: action) {
             ZStack {
+                // Recessed mount
                 Circle()
-                    .fill(PadTheme.knobCap)
+                    .fill(Color.black.opacity(0.45))
+                    .frame(width: size + 4, height: size + 4)
+                    .blur(radius: 0.2)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                PadTheme.metalHighlight.opacity(0.95),
+                                PadTheme.knobCap,
+                                Color.black.opacity(0.85),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: size, height: size)
+                    .overlay(
+                        // Top sheen
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.22),
+                                        Color.white.opacity(0.04),
+                                        Color.clear,
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .center
+                                )
+                            )
+                            .padding(1)
+                    )
                     .overlay(
                         Circle()
                             .stroke(
-                                (isActive ? (accent ?? PadTheme.purpleGlow) : PadTheme.label.opacity(0.35)),
-                                lineWidth: isActive ? 2 : 1
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(isActive ? 0.55 : 0.28),
+                                        ring.opacity(isActive ? 0.95 : 0.55),
+                                        Color.black.opacity(0.55),
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: isActive ? 2.2 : 1.2
                             )
                     )
-                    .shadow(color: (isActive ? (accent ?? PadTheme.purple) : .clear).opacity(0.55), radius: pulse ? 8 : 4)
+                    .shadow(color: (isActive ? (accent ?? PadTheme.purple) : .black).opacity(isActive ? 0.55 : 0.4),
+                            radius: pulse ? 9 : (isActive ? 5 : 2),
+                            y: isActive ? 0 : 2)
 
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: compact ? 12 : 14, weight: .semibold))
-                        .foregroundStyle(accent == PadTheme.accentRed && systemImage == "circle.fill" ? PadTheme.accentRed : PadTheme.label)
+                        .font(.system(size: compact ? 13 : 15, weight: .semibold))
+                        .foregroundStyle(
+                            accent == PadTheme.accentRed && systemImage == "circle.fill"
+                            ? PadTheme.accentRed
+                            : PadTheme.label
+                        )
+                        .shadow(color: .black.opacity(0.45), radius: 1, y: 1)
                 } else if let title {
                     Text(title)
                         .font(.system(size: title.count > 3 ? 10 : 12, weight: .bold, design: .rounded))
@@ -38,8 +87,10 @@ struct RoundButtonView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.65)
                         .padding(5)
+                        .shadow(color: .black.opacity(0.35), radius: 1, y: 1)
                 }
             }
+            .frame(width: size + 4, height: size + 4)
         }
         .buttonStyle(.plain)
         .simultaneousGesture(
@@ -47,7 +98,7 @@ struct RoundButtonView: View {
                 longPress?()
             }
         )
-        .scaleEffect(isActive && pulse ? 1.04 : 1.0)
+        .scaleEffect(isActive && pulse ? 1.05 : 1.0)
         .animation(.easeInOut(duration: 0.12), value: pulse)
     }
 }
@@ -61,7 +112,7 @@ struct LabeledRoundButton: View {
     var longPress: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             RoundButtonView(
                 title: shortTitle,
                 systemImage: nil,
