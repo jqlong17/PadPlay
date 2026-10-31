@@ -1,44 +1,30 @@
 import SwiftUI
 import UIKit
 
-/// Perfect regular 4×4 grid: 16 equal squares, always fully visible (no scroll).
+/// 4×4 pad stage matching preview mock: horizontal rectangles, uniform #CB85F3,
+/// labels under each pad (never inside the face). Not App Icon column colors.
 struct PadGridView: View {
     @EnvironmentObject private var controller: PadController
     @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         GeometryReader { geo in
-            let gap: CGFloat = max(2.5, min(4.5, geo.size.width * 0.008))
-            let inset: CGFloat = gap
-            let block = min(geo.size.width, geo.size.height)
-            let cell = max(1, (block - inset * 2 - gap * 3) / 4)
+            let layout = Self.layout(in: geo.size)
             let rows = controller.gridRowsTopFirst
-            let wellRadius = max(8, cell * 0.1)
 
             ZStack {
-                RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0.55),
-                                PadTheme.chassisWell,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: wellRadius, style: .continuous)
-                            .stroke(Color.white.opacity(0.05), lineWidth: 1)
-                    )
+                RoundedRectangle(cornerRadius: max(6, layout.padH * 0.08), style: .continuous)
+                    .fill(PadTheme.chassisWell)
 
-                VStack(spacing: gap) {
+                VStack(spacing: layout.vGap) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                        HStack(spacing: gap) {
+                        HStack(alignment: .top, spacing: layout.hGap) {
                             ForEach(row) { pad in
                                 ForcePadCell(
                                     pad: pad,
-                                    side: cell,
+                                    padWidth: layout.padW,
+                                    padHeight: layout.padH,
+                                    labelHeight: layout.labelH,
                                     title: settings.t(pad.nameKey),
                                     subtitle: settings.t(pad.categoryKey),
                                     isLit: controller.litPads.contains(pad.id),
@@ -50,24 +36,79 @@ struct PadGridView: View {
                                         controller.padTouchUp(pad: pad)
                                     }
                                 )
-                                .frame(width: cell, height: cell)
+                                .frame(width: layout.padW, height: layout.cellH, alignment: .top)
                             }
                         }
-                        .frame(height: cell)
                     }
                 }
-                .padding(inset)
+                .padding(layout.inset)
             }
-            .frame(width: block, height: block)
+            .frame(width: layout.gridW, height: layout.gridH)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
-        .aspectRatio(1, contentMode: .fit)
+    }
+
+    /// Fit 4×4 horizontal pads + under-pad labels into the available rectangle.
+    private static func layout(in size: CGSize) -> (
+        padW: CGFloat, padH: CGFloat, labelH: CGFloat, cellH: CGFloat,
+        hGap: CGFloat, vGap: CGFloat, inset: CGFloat, gridW: CGFloat, gridH: CGFloat
+    ) {
+        let aspect = PadTheme.padAspect
+        let inset: CGFloat = max(4, min(10, min(size.width, size.height) * 0.012))
+        let availW = max(1, size.width - inset * 2)
+        let availH = max(1, size.height - inset * 2)
+
+        // Mock: h-gap ≈ 14% of pad width; v-gap carries the label band.
+        func metrics(padW: CGFloat) -> (padH: CGFloat, hGap: CGFloat, labelH: CGFloat, vGap: CGFloat, cellH: CGFloat, gridW: CGFloat, gridH: CGFloat) {
+            let padH = padW / aspect
+            let hGap = padW * 0.14
+            let labelH = max(12, min(22, padH * 0.18))
+            let labelPad: CGFloat = max(2, padH * 0.04)
+            let vGap = max(4, labelPad) // spacing between rows (label sits in cell)
+            let cellH = padH + labelPad + labelH
+            let gridW = 4 * padW + 3 * hGap + inset * 2
+            let gridH = 4 * cellH + 3 * vGap + inset * 2
+            return (padH, hGap, labelH, vGap, cellH, gridW, gridH)
+        }
+
+        // Width-limited padW from 4 cols + 3 gaps.
+        let padWFromWidth = availW / (4 + 3 * 0.14)
+        // Height-limited: 4*(padH + labelBand) + 3*vGap ≈ availH
+        // Approximate labelBand ≈ 0.22*padH, vGap ≈ 0.04*padH → cell≈1.26*padH
+        let padHFromHeight = availH / (4 * 1.26 + 3 * 0.05)
+        let padWFromHeight = padHFromHeight * aspect
+
+        var padW = min(padWFromWidth, padWFromHeight)
+        padW = max(36, padW)
+
+        var m = metrics(padW: padW)
+        // Shrink if still overflowing (label band heuristic).
+        if m.gridW > size.width || m.gridH > size.height {
+            let sx = size.width / max(m.gridW, 1)
+            let sy = size.height / max(m.gridH, 1)
+            padW *= min(sx, sy)
+            m = metrics(padW: padW)
+        }
+
+        return (
+            padW: padW,
+            padH: m.padH,
+            labelH: m.labelH,
+            cellH: m.cellH,
+            hGap: m.hGap,
+            vGap: m.vGap,
+            inset: inset,
+            gridW: m.gridW,
+            gridH: m.gridH
+        )
     }
 }
 
 struct ForcePadCell: View {
     let pad: PadInfo
-    let side: CGFloat
+    let padWidth: CGFloat
+    let padHeight: CGFloat
+    let labelHeight: CGFloat
     let title: String
     let subtitle: String
     let isLit: Bool
@@ -75,88 +116,48 @@ struct ForcePadCell: View {
     let onDown: (CGFloat?) -> Void
     let onUp: () -> Void
 
-    private var corner: CGFloat { max(6, side * 0.09) }
+    private var shortSide: CGFloat { min(padWidth, padHeight) }
+    /// Hard-edge rounded square — 8–12% of short side (mock).
+    private var corner: CGFloat { shortSide * 0.10 }
     private var bright: Bool { isLit || isActive }
 
     var body: some View {
-        ZStack {
-            // Silicone / LED pad body — SwiftUI radial so device always matches preview
-            RoundedRectangle(cornerRadius: corner, style: .continuous)
-                .fill(
-                    RadialGradient(
-                        colors: bright
-                            ? [PadTheme.purpleHit, PadTheme.purpleGlow, PadTheme.purple, PadTheme.purpleEdge]
-                            : [PadTheme.purpleCore, Color(red: 0.68, green: 0.40, blue: 1.0), PadTheme.purple, PadTheme.purpleEdge],
-                        center: UnitPoint(x: 0.5, y: 0.42),
-                        startRadius: 2,
-                        endRadius: side * 0.72
+        VStack(spacing: max(2, padHeight * 0.04)) {
+            ZStack {
+                // Flat uniform fill; optional hairline edge — no silicone radial / sheen / glow.
+                RoundedRectangle(cornerRadius: corner, style: .continuous)
+                    .fill(bright ? PadTheme.padHit : PadTheme.padFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: corner, style: .continuous)
+                            .stroke(PadTheme.padEdge.opacity(bright ? 0.55 : 0.35), lineWidth: 1)
                     )
-                )
-                .overlay(
-                    // Top translucent sheen (rubber face)
-                    RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(bright ? 0.28 : 0.18),
-                                    Color.white.opacity(0.04),
-                                    Color.clear,
-                                ],
-                                startPoint: .top,
-                                endPoint: UnitPoint(x: 0.5, y: 0.55)
-                            )
-                        )
-                        .allowsHitTesting(false)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: corner, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(bright ? 0.45 : 0.22),
-                                    Color.white.opacity(0.06),
-                                    Color.black.opacity(0.35),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-                .shadow(color: PadTheme.purpleGlow.opacity(bright ? 0.55 : 0.3), radius: bright ? 10 : 5, y: 0)
 
-            // Beginner labels — bottom placement like hardware pad faceplate text
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                HStack(alignment: .bottom, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: max(11, side * 0.13), weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.white.opacity(0.95))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.55)
-                        .multilineTextAlignment(.leading)
-                    Spacer(minLength: 2)
-                    if side >= 58 {
-                        Text(subtitle)
-                            .font(.system(size: max(9, side * 0.09), weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.72))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                    }
-                }
-                .padding(.horizontal, max(6, side * 0.07))
-                .padding(.bottom, max(6, side * 0.07))
+                ForceTouchPadRepresentable(
+                    onDown: onDown,
+                    onUp: onUp
+                )
             }
-            .allowsHitTesting(false)
+            .frame(width: padWidth, height: padHeight)
+            .scaleEffect(isActive ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.08), value: isActive)
 
-            // Force / multi-touch capture only
-            ForceTouchPadRepresentable(
-                onDown: onDown,
-                onUp: onUp
-            )
+            // Beginner drum name under the pad (mock position) — never swing/octave pro copy.
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: max(9, min(13, padHeight * 0.14)), weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                Spacer(minLength: 2)
+                Text(subtitle)
+                    .font(.system(size: max(8, min(11, padHeight * 0.11)), weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.45))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(width: padWidth, height: labelHeight, alignment: .top)
+            .allowsHitTesting(false)
         }
-        .scaleEffect(isActive ? 0.97 : 1)
-        .animation(.easeOut(duration: 0.08), value: isActive)
     }
 }
 
