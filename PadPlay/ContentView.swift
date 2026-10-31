@@ -83,22 +83,20 @@ struct ContentView: View {
         }
     }
 
-    /// Pad stage: slim top strip with settings gear (far right) + pad grid below.
+    /// Pad stage: settings gear locked to design inset top 18 / right 18 (⌀34) + pad grid below.
     private func padStageColumn(width: CGFloat, height: CGFloat, metrics: LeftChromeMetrics) -> some View {
-        let topBarH: CGFloat = max(28, 36 * metrics.scale)
-        let topBarBottom: CGFloat = max(4, 8 * metrics.scale)
         let gearD = metrics.gearDiameter
+        let gearInset = LeftChromeMetrics.gearInset
+        let topReserve = LeftChromeMetrics.gearTopReserve
 
-        return VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-                settingsGearButton(diameter: gearD)
-            }
-            .frame(height: topBarH)
-            .padding(.bottom, topBarBottom)
-
+        return ZStack(alignment: .topTrailing) {
             PadGridView()
+                .padding(.top, topReserve)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            settingsGearButton(diameter: gearD)
+                .padding(.top, gearInset)
+                .padding(.trailing, gearInset)
         }
         .frame(width: width, height: height)
     }

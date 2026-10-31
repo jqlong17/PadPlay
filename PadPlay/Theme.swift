@@ -119,8 +119,14 @@ struct LeftChromeMetrics {
     /// No `space-between` stretch.
     var sectionGap: CGFloat { 26 * scale }
 
-    // Settings gear on pad-stage top-right — `--gear-d` 34
-    var gearDiameter: CGFloat { Self.gearDiameterBase * scale }
+    // Settings gear on pad-stage top-right — `--gear-d` 34 (fixed, not scaled)
+    var gearDiameter: CGFloat { Self.gearDiameterBase }
+    /// Design inset from pad-stage top / trailing edges.
+    static let gearInset: CGFloat = 18
+    /// Breathing room under gear before pad grid (keeps faces clear of the control).
+    static let gearBottomGap: CGFloat = 8
+    /// Vertical space reserved above pads: inset + ⌀ + gap under gear.
+    static var gearTopReserve: CGFloat { gearInset + gearDiameterBase + gearBottomGap }
 
     /// Left column top inset (CSS `.left { padding-top: 8px }`).
     var leftTopPadding: CGFloat { 8 * scale }

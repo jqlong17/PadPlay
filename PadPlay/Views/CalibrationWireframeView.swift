@@ -29,25 +29,23 @@ struct CalibrationWireframeView: View {
         .onPreferenceChange(CalibrationFrameKey.self) { frames in
             let padLayout = PadGridView.layout(in: CGSize(
                 width: padWidth,
-                height: max(0, padHeight - topBarTotalHeight)
+                height: max(0, padHeight - LeftChromeMetrics.gearTopReserve)
             ))
+            // padGapV fallback = label band + row spacing; update() prefers frame-derived face gap.
+            let padGapVFallback = (padLayout.cellH - padLayout.padH) + padLayout.vGap
             let gaps = CalibrationGaps(
                 sectionGap: metrics.sectionGap,
                 knobCol: metrics.knobColGap,
                 knobRow: metrics.knobRowGap,
                 btnCol: metrics.colGap,
                 padGapH: padLayout.hGap,
-                padGapV: padLayout.vGap
+                padGapV: padGapVFallback
             )
             // Keep window screenSize from ContentView; only refresh frames + gaps here.
             calibration.update(frames: frames, gaps: gaps, screen: calibration.screenSize)
         }
         .background(Color.black.opacity(0.55))
     }
-
-    private var topBarH: CGFloat { max(28, 36 * metrics.scale) }
-    private var topBarBottom: CGFloat { max(4, 8 * metrics.scale) }
-    private var topBarTotalHeight: CGFloat { topBarH + topBarBottom }
 
     // MARK: - Left chrome wireframe
 
@@ -149,29 +147,31 @@ struct CalibrationWireframeView: View {
     // MARK: - Pad stage wireframe
 
     private var padStage: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Button {
-                    showSettings = true
-                } label: {
-                    wireCircle(id: "gear", diameter: metrics.gearDiameter)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(settings.t("settings.title"))
-                .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                    SettingsSheetView()
-                        .environmentObject(settings)
-                        .environmentObject(calibration)
-                        .frame(minWidth: 280, idealWidth: 300, minHeight: 280, idealHeight: 360)
-                        .presentationCompactAdaptation(.popover)
-                }
-            }
-            .frame(height: topBarH)
-            .padding(.bottom, topBarBottom)
+        let gearD = metrics.gearDiameter
+        let gearInset = LeftChromeMetrics.gearInset
+        let topReserve = LeftChromeMetrics.gearTopReserve
 
+        return ZStack(alignment: .topTrailing) {
             padGridWireframe
+                .padding(.top, topReserve)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button {
+                showSettings = true
+            } label: {
+                wireCircle(id: "gear", diameter: gearD)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(settings.t("settings.title"))
+            .padding(.top, gearInset)
+            .padding(.trailing, gearInset)
+            .popover(isPresented: $showSettings, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                SettingsSheetView()
+                    .environmentObject(settings)
+                    .environmentObject(calibration)
+                    .frame(minWidth: 280, idealWidth: 300, minHeight: 280, idealHeight: 360)
+                    .presentationCompactAdaptation(.popover)
+            }
         }
     }
 
@@ -198,9 +198,11 @@ struct CalibrationWireframeView: View {
                 }
                 .padding(layout.inset)
                 .overlay(alignment: .topTrailing) {
+                    // h = HStack spacing; v = face-to-face row gutter (label band + row spacing).
+                    let faceGapV = (layout.cellH - layout.padH) + layout.vGap
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("h \(gapText(layout.hGap))")
-                        Text("v \(gapText(layout.vGap))")
+                        Text("v \(gapText(faceGapV))")
                     }
                     .font(Wire.marginFont)
                     .foregroundStyle(Wire.margin)

@@ -16,12 +16,14 @@ enum CalibrationTokens {
 }
 
 /// Measured section / gutter gaps reported alongside frames.
+/// `padGapH` / `padGapV` are face-to-face gutters between pad frames (not VStack row spacing alone).
 struct CalibrationGaps: Equatable {
     var sectionGap: CGFloat = 0
     var knobCol: CGFloat = 0
     var knobRow: CGFloat = 0
     var btnCol: CGFloat = 0
     var padGapH: CGFloat = 0
+    /// Vertical space between pad faces of adjacent rows (frame-based).
     var padGapV: CGFloat = 0
 }
 
@@ -46,8 +48,38 @@ final class CalibrationLayoutStore: ObservableObject {
 
     func update(frames: [String: CGRect], gaps: CalibrationGaps, screen: CGSize) {
         self.frames = frames
-        self.gaps = gaps
+        // Prefer frame-derived padGapV so the paste report matches QA face-to-face row gutters.
+        var resolved = gaps
+        if let v = Self.padGapV(from: frames) {
+            resolved.padGapV = v
+        }
+        if let h = Self.padGapH(from: frames) {
+            resolved.padGapH = h
+        }
+        self.gaps = resolved
         self.screenSize = screen
+    }
+
+    /// Face-to-face vertical gutter: next-row pad.minY − upper-row pad.maxY (top visual row = pad13–16).
+    static func padGapV(from frames: [String: CGRect]) -> CGFloat? {
+        gap(from: frames, upperId: "pad13", lowerId: "pad9", horizontal: false)
+    }
+
+    /// Face-to-face horizontal gutter between neighboring pads in a row.
+    static func padGapH(from frames: [String: CGRect]) -> CGFloat? {
+        gap(from: frames, upperId: "pad13", lowerId: "pad14", horizontal: true)
+    }
+
+    private static func gap(
+        from frames: [String: CGRect],
+        upperId: String,
+        lowerId: String,
+        horizontal: Bool
+    ) -> CGFloat? {
+        guard let a = frames[upperId], let b = frames[lowerId],
+              !a.isNull, !b.isNull, !a.isInfinite, !b.isInfinite
+        else { return nil }
+        return horizontal ? (b.minX - a.maxX) : (b.minY - a.maxY)
     }
 
     func copyReportToPasteboard() {
