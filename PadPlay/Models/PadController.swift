@@ -178,7 +178,10 @@ final class PadController: ObservableObject {
         // Shared path: intensity → 1 (retrigger). Optional velocity scale kept near 1 for v1.
         flashPad(id: pad.id, peak: 1)
         let pitch = Float(octaveShift * 12) + ((knobs[3] - 0.5) * 24)
-        engine?.pitchSemitones = pitch
+        // Skip no-op pitch writes on every strike (hit-path CPU / churn).
+        if let engine, abs(engine.pitchSemitones - pitch) > 0.001 {
+            engine.pitchSemitones = pitch
+        }
         engine?.triggerPad(padId: pad.id, sampleName: pad.sampleName, velocity: velocity, bank: padBank.rawValue)
     }
 

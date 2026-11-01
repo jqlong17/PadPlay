@@ -5,11 +5,13 @@ import Foundation
 /// Local drum sampler built on AVAudioEngine. No external MIDI host required.
 @MainActor
 final class DrumEngine: ObservableObject {
-    @Published var isRunning = false
-    @Published var volume: Float = 0.85
-    @Published var reverbWet: Float = 0.22
-    @Published var filterCutoff: Float = 0.85
-    @Published var pitchSemitones: Float = 0
+    /// Effect knobs are not observed by SwiftUI — keep them plain vars so rapid
+    /// pad hits (which rewrite pitch) do not invalidate the whole view tree.
+    var isRunning = false
+    var volume: Float = 0.85
+    var reverbWet: Float = 0.22
+    var filterCutoff: Float = 0.85
+    var pitchSemitones: Float = 0
 
     @Published var bpm: Double = 120
     @Published var isPlaying = false
@@ -37,7 +39,9 @@ final class DrumEngine: ObservableObject {
     private var buffers: [String: AVAudioPCMBuffer] = [:]
     private var players: [AVAudioPlayerNode] = []
     private var playerIndex = 0
-    private let playerPoolSize = 24
+    /// Enough for drums; keeping this modest caps concurrent TimePitch/Reverb
+    /// load on Simulator when many long samples overlap (~20 rapid hits).
+    private let playerPoolSize = 12
 
     private var metronomeTimer: Timer?
     private var beatIndex = 0
@@ -54,15 +58,20 @@ final class DrumEngine: ObservableObject {
     /// Fired when transport fully stops (Stop / end of play toggle-off).
     var onTransportStopped: (() -> Void)?
 
+    /// Session + AVAudioEngine graph (incl. `mainMixerNode`) must not run inside
+    /// `@StateObject` construction — Simulator AURemoteIO RPC can SIGABRT there
+    /// before the SwiftUI hierarchy appears. Samples are file I/O only and stay eager.
+    private var isGraphConfigured = false
+
     init() {
-        configureSession()
-        configureGraph()
         loadBundledSamples()
     }
 
     @discardableResult
     func start() -> Bool {
         if isRunning, engine.isRunning { return true }
+        ensureAudioConfigured()
+        guard isGraphConfigured else { return false }
         do {
             try AVAudioSession.sharedInstance().setActive(true)
             engine.prepare()
@@ -81,6 +90,10 @@ final class DrumEngine: ObservableObject {
 
     func play(sampleName: String, velocity: Double, pitchOverride: Float? = nil) {
         guard ensureReadyToPlay() else { return }
+        guard !players.isEmpty else {
+            print("DrumEngine: player pool empty")
+            return
+        }
         guard let buffer = buffers[sampleName] else {
             print("DrumEngine: missing buffer for \(sampleName)")
             return
@@ -92,7 +105,16 @@ final class DrumEngine: ObservableObject {
             print("DrumEngine: buffer format mismatch for \(sampleName)")
             return
         }
+        // Engine can drop under Simulator audio RPC stress; reschedule would abort.
+        if !engine.isRunning {
+            isRunning = false
+            _ = start()
+            guard engine.isRunning else { return }
+        }
 
+        // Round-robin voice steal once the pool is saturated (~playerPoolSize hits
+        // with long samples still sounding). Avoid `stop()` before reschedule —
+        // stop()+schedule races the render thread and can SIGABRT under rapid hits.
         let player = players[playerIndex]
         playerIndex = (playerIndex + 1) % players.count
 
@@ -107,10 +129,11 @@ final class DrumEngine: ObservableObject {
             timePitch.pitch = pitchSemitones * 100
         }
 
-        player.stop()
         player.volume = Float(min(1, max(0.05, velocity)))
-        player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        player.play()
+        player.scheduleBuffer(buffer, at: nil, options: [.interrupts], completionHandler: nil)
+        if !player.isPlaying {
+            player.play()
+        }
     }
 
     func triggerPad(padId: Int, sampleName: String, velocity: Double, bank: Int) {
@@ -201,6 +224,7 @@ final class DrumEngine: ObservableObject {
     // MARK: - Effects knobs
 
     func applyEffects() {
+        guard isGraphConfigured else { return }
         engine.mainMixerNode.outputVolume = volume
         reverb.wetDryMix = max(0, min(100, reverbWet * 100))
         let minHz: Float = 400
@@ -218,12 +242,22 @@ final class DrumEngine: ObservableObject {
         return start()
     }
 
+    /// Lazy session + graph setup used by `start()` / first pad hit (via
+    /// `ensureReadyToPlay`). Avoids AURemoteIO during `@StateObject` init.
+    private func ensureAudioConfigured() {
+        guard !isGraphConfigured else { return }
+        configureSession()
+        configureGraph()
+        isGraphConfigured = true
+    }
+
     private func configureSession() {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try session.setPreferredSampleRate(playFormat.sampleRate)
-            try session.setPreferredIOBufferDuration(0.005)
+            // 10 ms: still tight for drums, less CPU/RPC stress than 5 ms on Simulator.
+            try session.setPreferredIOBufferDuration(0.01)
             try session.setActive(true)
         } catch {
             print("AVAudioSession error: \(error)")
@@ -262,6 +296,8 @@ final class DrumEngine: ObservableObject {
         engine.connect(eq, to: pitch, format: playFormat)
         engine.connect(pitch, to: reverb, format: playFormat)
         // Let the main mixer convert to the device hardware rate/channel layout.
+        // Accessing `mainMixerNode` spins up AURemoteIO — keep this off the
+        // synchronous `init` / `@StateObject` path (Simulator RPC timeout → SIGABRT).
         engine.connect(reverb, to: engine.mainMixerNode, format: playFormat)
     }
 
