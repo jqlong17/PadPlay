@@ -18,7 +18,10 @@ struct PadPlayApp: App {
                 .statusBarHidden(true)
                 .onAppear {
                     controller.bind(engine: engine)
-                    engine.start()
+                    // Start after the first frame so audio RPC cannot abort launch.
+                    Task { @MainActor in
+                        _ = engine.start()
+                    }
                 }
         }
     }
