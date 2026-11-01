@@ -106,7 +106,7 @@ final class DrumEngine: ObservableObject {
             return
         }
         // Engine can drop under Simulator audio RPC stress; reschedule would abort.
-        guard engine.isRunning else {
+        if !engine.isRunning {
             isRunning = false
             _ = start()
             guard engine.isRunning else { return }
